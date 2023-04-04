@@ -3,30 +3,27 @@
 {% block title %}Курсы / StudyOn{% endblock %}
 
 {% block body %}
-    <h1>StudyOn</h1>
-
-    <table class="table">
-        <thead>
-            <tr>
-                {% if courses|length > 0 %}
-                <th>Название курса</th>
-                <th>Описание курса</th>
-                {% else %}
-                {% endif %}
-            </tr>
-        </thead>
-        <tbody>
+    <h1 class="mb-2 pb-3">Курсы</h1>
+    <div class="row align-items-md-stretch">
         {% for course in courses %}
-            <tr>
-                <td>
-                    <a href="{{ path('app_course_show', {'id': course.id}) }}">{{ course.Name }}</a>
-                </td>
-                <td>{{ course.Description }}</td>
-            </tr>
-        {% else %}
+        <div class="col-md-6 mb-2">
+            <div class="p-5 text-bg-dark rounded-3" style="height: 350px;">
+                 <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" title="{{ course.Description }}">
+                    <h2 class="course-card-header">{{ course.Name }}</h2>
+                </span>
+                <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" title="{{ course.Description }}">
+                    <p class="course-card-text">{{ course.Description }}</p>
+                </span>
+                <a href="{{ path('app_course_show', {'id': course.id}) }}" class="btn btn-outline-light" style="margin-top: 0.5rem;" type="button">Пройти курс</a>
+            </div>
+        </div>
         {% endfor %}
-        </tbody>
-    </table>
-
-    <a href="{{ path('app_course_new') }}">Создать новый курс</a>
+    </div>
+    <a href="{{ path('app_course_new') }}" type="button" class="btn btn-dark mt-3 align-items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"></path>
+            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"></path>
+        </svg>
+       Создать новый курс
+    </a>
 {% endblock %}

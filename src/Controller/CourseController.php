@@ -49,7 +49,7 @@ class CourseController extends AbstractController
     /**
      * @Route("/{id}", name="app_course_show", methods={"GET"})
      */
-    public function show(Course $course): Response
+    public function show(Course $course, CourseRepository $courseRepository): Response
     {
         return $this->render('course/show.html.twig', [
             'course' => $course,

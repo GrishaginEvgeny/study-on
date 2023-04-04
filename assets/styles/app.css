@@ -1,0 +1,25 @@
+body {
+    background-color: white;
+}
+
+.course-card-text{
+    height: 150px;
+    text-align: justify;
+    margin: 0;
+    -webkit-line-clamp: 6;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.lesson-field:hover{
+    background: #212529;
+    color: white;
+}
+.form-control:focus{
+    color: #212529;
+    background-color: #fff;
+    border-color: #212529;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(33,37,41,.25);
+}
