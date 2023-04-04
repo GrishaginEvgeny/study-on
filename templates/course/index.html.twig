@@ -1,15 +1,18 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Course index{% endblock %}
+{% block title %}Курсы / StudyOn{% endblock %}
 
 {% block body %}
-    <h1>Course index</h1>
+    <h1>StudyOn</h1>
 
     <table class="table">
         <thead>
             <tr>
-                <th>Name</th>
-                <th>Description</th>
+                {% if courses|length > 0 %}
+                <th>Название курса</th>
+                <th>Описание курса</th>
+                {% else %}
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -21,12 +24,9 @@
                 <td>{{ course.Description }}</td>
             </tr>
         {% else %}
-            <tr>
-                <td colspan="5">no records found</td>
-            </tr>
         {% endfor %}
         </tbody>
     </table>
 
-    <a href="{{ path('app_course_new') }}">Create new</a>
+    <a href="{{ path('app_course_new') }}">Создать новый курс</a>
 {% endblock %}

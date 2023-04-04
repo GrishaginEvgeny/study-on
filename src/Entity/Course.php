@@ -6,9 +6,12 @@ use App\Repository\CourseRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Entity(repositoryClass=CourseRepository::class)
+ * @UniqueEntity(fields={"CharacterCode"}, message="Курс с таким символьным кодом уже существует.")
  */
 class Course
 {
@@ -42,6 +45,10 @@ class Course
     public function __construct()
     {
         $this->Lessons = new ArrayCollection();
+    }
+
+    public function __toString() {
+        return $this->Name;
     }
 
     public function getId(): ?int
