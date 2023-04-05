@@ -42,7 +42,8 @@ class LessonType extends AbstractType
                 'label' => 'Порядковый номер',
                 'constraints' => [
                     new GreaterThanOrEqual(['value'=> 1, 'message' => 'Порядковый номер должен быть больше или равен {{ compared_value }}']),
-                    new LessThanOrEqual(['value'=> 10000, 'message' => 'Порядковый номер должен быть меньше или равен {{ compared_value }}'])
+                    new LessThanOrEqual(['value'=> 10000, 'message' => 'Порядковый номер должен быть меньше или равен {{ compared_value }}']),
+                    new NotBlank(['message' => 'Порядковый номер" не должно быть пустым']),
                 ]
             ])
             ->add('Content', TextareaType::class,
