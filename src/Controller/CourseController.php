@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Course;
 use App\Form\CourseType;
 use App\Repository\CourseRepository;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +27,7 @@ class CourseController extends AbstractController
     }
 
     /**
+     * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/new", name="app_course_new", methods={"GET", "POST"})
      */
     public function new(Request $request, CourseRepository $courseRepository): Response
@@ -57,6 +59,7 @@ class CourseController extends AbstractController
     }
 
     /**
+     * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/{id}/edit", name="app_course_edit", methods={"GET", "POST"})
      */
     public function edit(Request $request, Course $course, CourseRepository $courseRepository): Response
@@ -77,6 +80,7 @@ class CourseController extends AbstractController
     }
 
     /**
+     * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/{id}", name="app_course_delete", methods={"POST"})
      */
     public function delete(Request $request, Course $course, CourseRepository $courseRepository): Response

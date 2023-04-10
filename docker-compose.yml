@@ -43,4 +43,7 @@ services:
       - ${PWD}:/app
       - ${HOME}/.yarn:/yarn
     tty: true
-
+networks:
+  default:
+    external:
+      name: study-onbilling_default

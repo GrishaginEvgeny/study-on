@@ -1,5 +1,6 @@
 body {
-    background-color: white;
+    background-color: #eee;
+    width: 100%;
 }
 
 .course-card-text{
@@ -23,3 +24,17 @@ body {
     outline: 0;
     box-shadow: 0 0 0 0.25rem rgba(33,37,41,.25);
 }
+
+.person-link{
+    color: var(--bs-dark);
+}
+
+.person-link:hover{
+    color: var(--bs-gray-400);
+}
+
+input{
+    background: #eee;
+}
+
+

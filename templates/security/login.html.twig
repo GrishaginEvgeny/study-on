@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Авторизация / StudyOn{% endblock %}
+
+{% block body %}
+    <div class="row text-center mx-auto">
+        <div class="col-md-8 mx-auto" style="width: 400px; margin-top:15%">
+            <form method="post">
+                {% if error %}
+                    <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+                {% endif %}
+
+
+                <h1 class="h3 mb-3 font-weight-normal">Авторизация</h1>
+                <div class="form-floating">
+                    <input type="email" value="{{ last_username }}" name="email" id="inputEmail" class="form-control">
+                    <label for="inputEmail">E-mail</label>
+                </div>
+                <div class="form-floating mt-1">
+                    <input type="password" name="password" id="inputPassword" class="form-control" autocomplete="current-password">
+                    <label for="inputPassword">Пароль</label>
+                </div>
+
+                <div class="checkbox mb-3 mt-1">
+                    <input class="form-check-input" type="checkbox" id="remember_me" name="_remember_me" checked/>
+                    <label class="form-check-label" for="remember_me">
+                         Запомнить меня
+                    </label>
+
+                </div>
+
+                <input type="hidden" name="_csrf_token"
+                       value="{{ csrf_token('authenticate') }}"
+                >
+
+                {#
+                Uncomment this section and add a remember_me option below your firewall to activate remember me functionality.
+                See https://symfony.com/doc/current/security/remember_me.html
+
+                <div class="checkbox mb-3">
+                    <label>
+                        <input type="checkbox" name="_remember_me"> Remember me
+                    </label>
+                </div>
+                #}
+
+                <button class="btn btn-lg mt-3 btn-dark" type="submit">
+                    Войти
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

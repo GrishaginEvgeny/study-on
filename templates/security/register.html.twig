@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Регистрация / StudyOn{% endblock %}
+
+{% block body %}
+    <div class="row text-center mx-auto">
+        <div class="col-md-8 mx-auto" style="width: 400px; margin-top:15%">
+            <div class="mt-5">
+                {{ form_errors(form) }}
+                <h1 class="h3 mb-3 font-weight-normal text-center">Регистрация</h1>
+                {{ form_start(form) }}
+                {{ form_widget(form) }}
+                <button class="btn btn-dark mb-3 w-100 save-button">{{ button_label|default('Зарегистрироваться') }}</button>
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+    </div>
+{% endblock %}
