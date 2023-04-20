@@ -3,6 +3,42 @@
 {% block title %}{{ course.Name }} / StudyOn{% endblock %}
 
 {% block body %}
+    <!-- Modal -->
+    {% if type != 'free' and is_granted('IS_AUTHENTICATED_REMEMBERED') %}
+    <div class="modal fade" id="buyModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">
+                        {% if type == 'buy' %} Покупка {% else %} Аренда {% endif %} курса "{{ course.Name }}"
+                    </h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Вы уверены что хотите {% if type == 'buy' %} купить {% else %} арендовать {% endif %} курс "{{ course.Name }}" за {{ price }}$ ?
+                </div>
+                <div class="modal-footer">
+                        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Закрыть</button>
+                        {% if balance < price %}
+                            <a role="button" class="btn disabled">
+                                {% if type == 'buy' %} Купить {% else %} Арендовать {% endif %}
+                            </a>
+                        {% else %}
+                            <a role="button" href="{{ path('app_course_buy', {'id': course.id}) }}" class="btn btn-dark">
+                                {% if type == 'buy' %} Купить {% else %} Арендовать {% endif %}
+                            </a>
+                        {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% for message in app.flashes('notification') %}
+            <div class="alert alert-dark alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+    {% endfor %}
     <h1 class="course_page_header">{{ course.Name }}</h1>
     <p class="course_description">{{ course.Description }}</p>
     {% if course.lessons|length > 0 %}
@@ -31,13 +67,21 @@
     {% endif %}
 
  <div class="mt-1">
-
+    {% if type != 'free' and is_granted('IS_AUTHENTICATED_REMEMBERED') %}
+        <div class="d-flex justify-content-start align-items-center">
+                    <button type="button" class="btn btn-dark" style="margin-right: 5px;" data-bs-toggle="modal" data-bs-target="#buyModal">
+                        {% if type == 'buy' %} Купить {% else %} Арендовать {% endif %}
+                    </button>
+            <h5 class="m-0">Цена: {{ price }}$</h5>
+        </div>
+     {% endif %}
      <a href="{{ path('app_course_index') }}" type="button" class="btn btn-dark my-1">
          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
              <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"></path>
          </svg>
          Вернуться к курсам
      </a>
+
      {% if is_granted('ROLE_SUPER_ADMIN') %}
          <a href="{{ path('app_course_edit', {'id': course.id}) }}" type="button" class="btn btn-dark my-1 edit_course_link">
              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-fill" viewBox="0 0 16 16">

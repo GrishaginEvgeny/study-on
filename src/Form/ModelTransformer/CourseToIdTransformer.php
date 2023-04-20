@@ -7,7 +7,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Form\DataTransformerInterface;
 use Symfony\Component\Form\Exception\TransformationFailedException;
 
-
 class CourseToIdTransformer implements DataTransformerInterface
 {
     private EntityManagerInterface $entityManager;

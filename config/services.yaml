@@ -20,6 +20,6 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
-    App\Services\BillingService:
+    App\Services\BillingUserService:
         public: true
         autowire: true

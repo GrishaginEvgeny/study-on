@@ -2,7 +2,7 @@
 
 namespace App\Tests\Controllers;
 
-use App\DataFixtures\AppFixtures;
+use App\DataFixtures\UserFixtures;
 use App\Entity\Course;
 use App\Repository\CourseRepository;
 use App\Repository\LessonRepository;
@@ -11,10 +11,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class CoursesTest extends AbstractTest
 {
-
     protected function getFixtures(): array
     {
-        return [AppFixtures::class];
+        return [UserFixtures::class];
     }
 
     public function urlProviderForSuccessGETRequests(): \Generator
@@ -32,10 +31,11 @@ class CoursesTest extends AbstractTest
         $this->assertResponseOk();
     }
 
-    public function testCoursePagesOnGETRequest() {
+    public function testCoursePagesOnGETRequest()
+    {
         $client = $this->getClient();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
-        foreach ($courses as $course){
+        foreach ($courses as $course) {
             $client->request('GET', "/courses/{$course->getId()}/edit");
             $this->assertResponseOk();
 
@@ -44,12 +44,13 @@ class CoursesTest extends AbstractTest
         }
     }
 
-    public function testCoursePagesOnPOSTRequest() {
+    public function testCoursePagesOnPOSTRequest()
+    {
         $client = $this->getClient();
         $client->request('POST', "/courses/new");
         $this->assertResponseOk();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
-        foreach ($courses as $course){
+        foreach ($courses as $course) {
             $client->request('POST', "/courses/{$course->getId()}/edit");
             $this->assertResponseOk();
 
@@ -58,19 +59,22 @@ class CoursesTest extends AbstractTest
         }
     }
 
-    public function testNumberOfCourses(){
+    public function testNumberOfCourses()
+    {
         $client = $this->getClient();
         $crawler = $client->request('GET', "/courses");
         $countOnDB = count(static::getContainer()->get(CourseRepository::class)->findAll());
         $this->assertCount($countOnDB, $crawler->filter('.course-card'));
     }
 
-    public function testNotExistedCourseSuccessfully(){
+    public function testNotExistedCourseSuccessfully()
+    {
         $this->getClient()->request('GET', "/courses/-413241");
         $this->assertResponseNotFound();
     }
 
-    public function testCourseAdding(){
+    public function testCourseAdding()
+    {
         $client = $this->getClient();
         $countBefore = count(static::getContainer()->get(CourseRepository::class)->findAll());
         $crawler = $this->getClient()->request('GET', '/courses');
@@ -98,10 +102,11 @@ class CoursesTest extends AbstractTest
         $this->assertResponseOk();
 
 
-        $this->assertCount($countAfter,  $crawler->filter('.course-card'));
+        $this->assertCount($countAfter, $crawler->filter('.course-card'));
     }
 
-    public function testAddCourseWithEmptyCharacterCode(){
+    public function testAddCourseWithEmptyCharacterCode()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -121,7 +126,8 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
     }
 
-    public function testAddCourseWithEmptyName(){
+    public function testAddCourseWithEmptyName()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -141,7 +147,8 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
     }
 
-    public function testAddCourseWithNotUniqueCharacterCode(){
+    public function testAddCourseWithNotUniqueCharacterCode()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -152,7 +159,10 @@ class CoursesTest extends AbstractTest
 
         $form = $crawler->selectButton('Сохранить')->form(
             [
-                'course[CharacterCode]' => static::getContainer()->get(CourseRepository::class)->findAll()[0]->getCharacterCode(),
+                'course[CharacterCode]' => static::getContainer()
+                    ->get(CourseRepository::class)
+                    ->findAll()[0]
+                    ->getCharacterCode(),
                 'course[Name]' => 'test',
                 'course[Description]' => 'test',
             ]
@@ -161,7 +171,8 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
     }
 
-    public function testAddCourseWithCharacterCodeLengthGreaterThanConstraint(){
+    public function testAddCourseWithCharacterCodeLengthGreaterThanConstraint()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -181,7 +192,8 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
     }
 
-    public function testAddCourseWithNameLengthGreaterThanConstraint(){
+    public function testAddCourseWithNameLengthGreaterThanConstraint()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -201,7 +213,8 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
     }
 
-    public function testAddCourseWithDescriptionLengthGreaterThanConstraint(){
+    public function testAddCourseWithDescriptionLengthGreaterThanConstraint()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -221,7 +234,8 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
     }
 
-    public function testEditCourse(){
+    public function testEditCourse()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -246,10 +260,11 @@ class CoursesTest extends AbstractTest
         $this->assertNotNull($editedCourse);
         $crawler = $client->request('GET', "/courses/{$editedCourse->getId()}");
         $this->assertResponseOk();
-        $this->assertSame('testName',$crawler->filter('.course_page_header')->text());
+        $this->assertSame('testName', $crawler->filter('.course_page_header')->text());
     }
 
-    public function testRemoveCourse(){
+    public function testRemoveCourse()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $countBefore = count(static::getContainer()->get(CourseRepository::class)->findAll());
@@ -261,13 +276,8 @@ class CoursesTest extends AbstractTest
 
         $client->submitForm('Удалить курс');
         $countAfter = count(static::getContainer()->get(CourseRepository::class)->findAll());
-        $this->assertSame($countAfter, $countBefore-1);
+        $this->assertSame($countAfter, $countBefore - 1);
         $crawler = $client->followRedirect();
         $this->assertCount($countAfter, $crawler->filter('.course-card'));
     }
-
-
-
-
-
 }

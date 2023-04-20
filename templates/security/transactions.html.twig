@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ваши транзакции / StudyOn{% endblock %}
+
+{% block body %}
+    <h3>Фильтры</h3>
+    {{ form_start(form) }}
+        <div class="d-flex justify-content-between align-items-center" style="flex-wrap: wrap">
+            <div class="input-group" style="width: 40%;">
+                <span class="input-group-text" id="courseCodeLabel" style="background: var(--bs-dark); color: white">{{ form.course_code.vars.label }}</span>
+{#                <input type="text" id="courseCode" class="form-control" aria-label="courseCodeLabel" aria-describedby="courseCodeLabel">#}
+                {{ form_widget(form.course_code,
+                { 'attr': {'type' : 'text', 'id' : 'courseCode', 'class' : 'form-control',
+                    'aria-label' : 'courseCodeLabel', 'aria-describedby' : 'courseCodeLabel' }})}}
+            </div>
+        </div>
+        <div>
+            {{ form_label(form.type) }}
+            {{ form_widget(form.type) }}
+            {{ form_errors(form.type) }}
+        </div>
+        <div>
+            {{ form_label(form.skip_expired) }}
+            {{ form_widget(form.skip_expired) }}
+            {{ form_errors(form.skip_expired) }}
+        </div>
+        <button type="submit" id="sumitFilters" class="btn btn btn-dark mt-2">
+            Применить
+        </button>
+    {{ form_end(form) }}
+    <h3>Транзакции</h3>
+
+    {% if transactions|length > 0 %}
+    <table class="table table-dark table-hover table-bordered border-white">
+        <thead style="border-bottom: 3px white solid;">
+        <tr>
+            <th scope="col"></th>
+            <th scope="col">Дата транзакции</th>
+            <th scope="col">Тип транзакции</th>
+            <th scope="col">Код курса</th>
+            <th scope="col">Стоимость</th>
+            <th scope="col">Дата истечения транзакции</th>
+        </tr>
+        </thead>
+        <tbody>
+            {% for key, transaction in transactions %}
+                <tr>
+                    <th scope="row">{{ key + 1 }}</th>
+                    <td>{{ transaction.created_at|date('Y-m-d H:i:s') }}</td>
+                    <td>{{ transaction.type == 'payment' ? 'Платёж' : 'Депозит' }}</td>
+                    <td>{{ transaction.course_code }}</td>
+                    <td>{{ transaction.amount }}$</td>
+                    <td>{{ transaction.expired_at is not null ? transaction.expired_at|date('Y-m-d H:i:s') : '' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <div class="text-center">У вас нет транзакций.</div>
+    {% endif %}
+{% endblock %}

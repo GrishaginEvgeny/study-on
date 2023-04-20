@@ -2,7 +2,7 @@
 
 namespace App\Tests\Api;
 
-use App\DataFixtures\AppFixtures;
+use App\DataFixtures\UserFixtures;
 use App\Repository\CourseRepository;
 use App\Repository\LessonRepository;
 use App\Services\BillingService;
@@ -17,83 +17,92 @@ class UserApiTest extends AbstractTest
 
         $this->getClient()->getContainer()->set(
             BillingService::class,
-            new BillingServiceMock());
+            new BillingServiceMock()
+        );
 
         return $this->getClient();
     }
 
     protected function getFixtures(): array
     {
-        return [AppFixtures::class];
+        return [UserFixtures::class];
     }
 
-    public function testCoursesNonAuth(){
+    public function testCoursesNonAuth()
+    {
         $client = $this->billingClient();
         $client->request('GET', '/courses');
         $this->assertResponseOk();
     }
 
-    public function testCoursePageNonAuth(){
+    public function testCoursePageNonAuth()
+    {
         $client = $this->billingClient();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
-        foreach ($courses as $course){
+        foreach ($courses as $course) {
             $client->request('GET', "/courses/{$course->getId()}");
             $this->assertResponseOk();
         }
     }
 
-    public function testNewCoursePageNonAuth(){
+    public function testNewCoursePageNonAuth()
+    {
         $client = $this->billingClient();
         $client->request('GET', "/courses/new");
         $crawler = $client->followRedirect();
-        $arrayedLocation = explode('/',$crawler->getUri());
-        $this->assertSame('login',$arrayedLocation[3]);
+        $arrayedLocation = explode('/', $crawler->getUri());
+        $this->assertSame('login', $arrayedLocation[3]);
     }
 
-    public function testCourseEditPageNonAuth(){
+    public function testCourseEditPageNonAuth()
+    {
         $client = $this->billingClient();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
-        foreach ($courses as $course){
+        foreach ($courses as $course) {
             $client->request('GET', "/courses/{$course->getId()}/edit");
             $crawler = $client->followRedirect();
-            $arrayedLocation = explode('/',$crawler->getUri());
-            $this->assertSame('login',$arrayedLocation[3]);
+            $arrayedLocation = explode('/', $crawler->getUri());
+            $this->assertSame('login', $arrayedLocation[3]);
         }
     }
 
-    public function testLessonPageNonAuth(){
+    public function testLessonPageNonAuth()
+    {
         $client = $this->billingClient();
         $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
-        foreach ($lessons as $lesson){
+        foreach ($lessons as $lesson) {
             $client->request('GET', "/lessons/{$lesson->getId()}");
             $this->assertResponseRedirect();
             $crawler = $client->followRedirect();
-            $arrayedLocation = explode('/',$crawler->getUri());
-            $this->assertSame('login',$arrayedLocation[3]);
+            $arrayedLocation = explode('/', $crawler->getUri());
+            $this->assertSame('login', $arrayedLocation[3]);
         }
     }
 
-    public function testNewLessonPageNonAuth(){
+    public function testNewLessonPageNonAuth()
+    {
         $client = $this->billingClient();
         $client->request('GET', "/lessons/new");
         $crawler = $client->followRedirect();
-        $arrayedLocation = explode('/',$crawler->getUri());
-        $this->assertSame('login',$arrayedLocation[3]);
+        $arrayedLocation = explode('/', $crawler->getUri());
+        $this->assertSame('login', $arrayedLocation[3]);
     }
 
-    public function testEditLessonNonAuth(){
+    public function testEditLessonNonAuth()
+    {
         $client = $this->billingClient();
         $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
-        foreach ($lessons as $lesson){
+        foreach ($lessons as $lesson) {
             $client->request('GET', "/lessons/{$lesson->getId()}/edit");
             $this->assertResponseRedirect();
             $crawler = $client->followRedirect();
-            $arrayedLocation = explode('/',$crawler->getUri());
-            $this->assertSame('login',$arrayedLocation[3]);
+            $arrayedLocation = explode('/', $crawler->getUri());
+            $this->assertSame('login', $arrayedLocation[3]);
         }
     }
 
-    public function testNewCoursePageOnUser(){
+    public function testNewCoursePageOnUser()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Войти')->link();
@@ -111,69 +120,75 @@ class UserApiTest extends AbstractTest
         $this->assertResponseForbidden();
     }
 
-    public function testCourseEditPageOnUser(){
+    public function testCourseEditPageOnUser()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Войти')->link();
         $crawler = $client->click($link);
         $this->assertResponseOk();
         $form = $crawler->selectButton('Войти')->form(
-                [
+            [
                     'email' => 'usualuser@study.com',
                     'password' => 'user'
                 ]
-            );
+        );
         $client->submit($form);
         $this->assertResponseRedirect();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
-        foreach ($courses as $course){
+        foreach ($courses as $course) {
             $client->request('GET', "/courses/{$course->getId()}/edit");
             $this->assertResponseForbidden();
         }
     }
 
-    public function testLessonPageOnUser(){
+    public function testLessonPageOnUser()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Войти')->link();
         $crawler = $client->click($link);
         $this->assertResponseOk();
         $form = $crawler->selectButton('Войти')->form(
-                [
+            [
                     'email' => 'usualuser@study.com',
                     'password' => 'user'
                 ]
-            );
+        );
         $client->submit($form);
         $this->assertResponseRedirect();
         $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
-        foreach ($lessons as $lesson){
+        foreach ($lessons as $lesson) {
             $crawler = $client->request('GET', "/lessons/{$lesson->getId()}");
             $this->assertResponseOk();
-            $this->assertSame("{$lesson->getCourse()->getName()} / {$lesson->getName()}",
-                $crawler->filter('.lesson-header')->text());
+            $this->assertSame(
+                "{$lesson->getCourse()->getName()} / {$lesson->getName()}",
+                $crawler->filter('.lesson-header')->text()
+            );
         }
     }
 
-    public function testNewLessonPageOnUser(){
+    public function testNewLessonPageOnUser()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Войти')->link();
         $crawler = $client->click($link);
         $this->assertResponseOk();
         $form = $crawler->selectButton('Войти')->form(
-                [
+            [
                     'email' => 'usualuser@study.com',
                     'password' => 'user'
                 ]
-            );
+        );
         $client->submit($form);
         $this->assertResponseRedirect();
         $client->request('GET', "/lessons/new");
         $this->assertResponseForbidden();
     }
 
-    public function testEditLessonOnUser(){
+    public function testEditLessonOnUser()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Войти')->link();
@@ -185,15 +200,17 @@ class UserApiTest extends AbstractTest
                 'password' => 'user'
             ]
         );
-        $client->submit($form);$this->assertResponseRedirect();
+        $client->submit($form);
+        $this->assertResponseRedirect();
         $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
-        foreach ($lessons as $lesson){
+        foreach ($lessons as $lesson) {
             $client->request('GET', "/lessons/{$lesson->getId()}/edit");
             $this->assertResponseForbidden();
         }
     }
 
-    public function testNewCoursePageOnAdmin(){
+    public function testNewCoursePageOnAdmin()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Войти')->link();
@@ -211,7 +228,8 @@ class UserApiTest extends AbstractTest
         $this->assertResponseOk();
     }
 
-    public function testCourseEditPageOnAdmin(){
+    public function testCourseEditPageOnAdmin()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Войти')->link();
@@ -226,13 +244,14 @@ class UserApiTest extends AbstractTest
         $client->submit($form);
         $this->assertResponseRedirect();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
-        foreach ($courses as $course){
+        foreach ($courses as $course) {
             $client->request('GET', "/courses/{$course->getId()}/edit");
             $this->assertResponseOk();
         }
     }
 
-    public function testLessonNewPageOnAdmin(){
+    public function testLessonNewPageOnAdmin()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Войти')->link();
@@ -247,13 +266,14 @@ class UserApiTest extends AbstractTest
         $client->submit($form);
         $this->assertResponseRedirect();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
-        foreach ($courses as $course){
+        foreach ($courses as $course) {
             $client->request('GET', "/lessons/new?id={$course->getId()}");
             $this->assertResponseOk();
         }
     }
 
-    public function testLessonEditPageOnAdmin(){
+    public function testLessonEditPageOnAdmin()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Войти')->link();
@@ -268,13 +288,14 @@ class UserApiTest extends AbstractTest
         $client->submit($form);
         $this->assertResponseRedirect();
         $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
-        foreach ($lessons as $lesson){
+        foreach ($lessons as $lesson) {
             $client->request('GET', "/lessons/{$lesson->getId()}/edit");
             $this->assertResponseOk();
         }
     }
 
-    public function testLogout(){
+    public function testLogout()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Войти')->link();
@@ -299,7 +320,8 @@ class UserApiTest extends AbstractTest
         $this->assertCount(1, $crawler->filter('.login-link'));
     }
 
-    public function testSuccessfullyRegister() {
+    public function testSuccessfullyRegister()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Зарегистрироваться')->link();
@@ -318,7 +340,8 @@ class UserApiTest extends AbstractTest
         $this->assertCount(1, $crawler->filter('.person-link'));
     }
 
-    public function testRegisterWithShortPassword() {
+    public function testRegisterWithShortPassword()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Зарегистрироваться')->link();
@@ -339,7 +362,8 @@ class UserApiTest extends AbstractTest
         );
     }
 
-    public function testRegisterWithWrongPassword() {
+    public function testRegisterWithWrongPassword()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Зарегистрироваться')->link();
@@ -356,11 +380,13 @@ class UserApiTest extends AbstractTest
         $this->assertResponseOk();
         $this->assertSelectorTextContains(
             '.invalid-feedback',
-            'Пароль должен содержать как один из спец. символов (.!@#$%^&*), прописную и строчные буквы латинского алфавита и цифру.'
+            'Пароль должен содержать как один из спец. символов (.!@#$%^&*), 
+            прописную и строчные буквы латинского алфавита и цифру.'
         );
     }
 
-    public function testRegisterWrongEmail() {
+    public function testRegisterWrongEmail()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Зарегистрироваться')->link();
@@ -381,7 +407,8 @@ class UserApiTest extends AbstractTest
         );
     }
 
-    public function testRegisterWithExistingUserEmail() {
+    public function testRegisterWithExistingUserEmail()
+    {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Зарегистрироваться')->link();

@@ -2,7 +2,7 @@
 
 namespace App\Tests\Controllers;
 
-use App\DataFixtures\AppFixtures;
+use App\DataFixtures\UserFixtures;
 use App\Repository\CourseRepository;
 use App\Repository\LessonRepository;
 use App\Tests\AbstractTest;
@@ -12,7 +12,7 @@ class LessonsTest extends AbstractTest
 {
     protected function getFixtures(): array
     {
-        return [AppFixtures::class];
+        return [UserFixtures::class];
     }
 
     public function testPagesOnGETRequests()
@@ -20,7 +20,7 @@ class LessonsTest extends AbstractTest
         $client = $this->getClient();
         $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
-        foreach ($lessons as $lesson){
+        foreach ($lessons as $lesson) {
             $client->request('GET', "/lessons/{$lesson->getId()}/edit");
             $this->assertResponseOk();
 
@@ -28,7 +28,7 @@ class LessonsTest extends AbstractTest
             $this->assertResponseOk();
         }
 
-        foreach ($courses as $course){
+        foreach ($courses as $course) {
             $client->request('GET', "/lessons/new?id={$course->getId()}");
             $this->assertResponseOk();
         }
@@ -40,31 +40,33 @@ class LessonsTest extends AbstractTest
         $client = $this->getClient();
         $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
-        foreach ($lessons as $lesson){
+        foreach ($lessons as $lesson) {
             $client->request('GET', "/lessons/{$lesson->getId()}/edit");
             $this->assertResponseOk();
 
             $client->request('POST', "/lessons/{$lesson->getId()}");
             $this->assertResponseRedirect();
         }
-        foreach ($courses as $course){
+        foreach ($courses as $course) {
             $client->request('POST', "/lessons/new?id={$course->getId()}");
             $this->assertResponseOk();
         }
         $this->assertResponseOk();
     }
 
-    public function testNumberOfLessonByCourse(){
+    public function testNumberOfLessonByCourse()
+    {
         $client = $this->getClient();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
-        foreach ($courses as $course){
+        foreach ($courses as $course) {
             $crawler = $client->request('GET', "/courses/{$course->getId()}");
             $countOnDB = count($course->getLessons());
             $this->assertCount($countOnDB, $crawler->filter('.lesson_field'));
         }
     }
 
-    public function testNotExistedLesson(){
+    public function testNotExistedLesson()
+    {
         $this->getClient()->request('GET', "/lessons/-413241");
         $this->assertResponseNotFound();
     }
@@ -93,19 +95,24 @@ class LessonsTest extends AbstractTest
             ]
         );
         $lessonsCourseId = $form['lesson[Course]']->getValue();
-        $lessonsCourseBefore = static::getContainer()->get(CourseRepository::class)->findOneBy(['id' => $lessonsCourseId ]);
+        $lessonsCourseBefore = static::getContainer()
+            ->get(CourseRepository::class)
+            ->findOneBy(['id' => $lessonsCourseId ]);
         $lessonsCountByCourseBefore = count($lessonsCourseBefore->getLessons());
         $client->submit($form);
-        $lessonsCourseAfter = static::getContainer()->get(CourseRepository::class)->findOneBy(['id' => $lessonsCourseId ]);
+        $lessonsCourseAfter = static::getContainer()
+            ->get(CourseRepository::class)
+            ->findOneBy(['id' => $lessonsCourseId ]);
         $lessonsCountByCourseAfter = count($lessonsCourseAfter->getLessons());
         $this->assertEquals($lessonsCountByCourseAfter, $lessonsCountByCourseBefore + 1);
         $crawler = $client->followRedirect();
-        $this->assertSame($lessonsCourseAfter->getName(),$crawler->filter('.course_page_header')->text());
+        $this->assertSame($lessonsCourseAfter->getName(), $crawler->filter('.course_page_header')->text());
         $this->assertCount($lessonsCountByCourseAfter, $crawler->filter('.lesson_field'));
     }
 
 
-    public function testAddLessonWithEmptyName(){
+    public function testAddLessonWithEmptyName()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -130,7 +137,8 @@ class LessonsTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
     }
 
-    public function testAddLessonWithWrongSequenceNumber(){
+    public function testAddLessonWithWrongSequenceNumber()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -155,7 +163,8 @@ class LessonsTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
     }
 
-    public function testAddLessonWithEmptyContent(){
+    public function testAddLessonWithEmptyContent()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -180,7 +189,8 @@ class LessonsTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
     }
 
-    public function testAddLessonWithNameGreaterThanConstraint(){
+    public function testAddLessonWithNameGreaterThanConstraint()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -205,7 +215,8 @@ class LessonsTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
     }
 
-    public function testAddLessonWithSequenceNumberGreaterThanConstraint(){
+    public function testAddLessonWithSequenceNumberGreaterThanConstraint()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -230,7 +241,8 @@ class LessonsTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
     }
 
-    public function testEditLesson(){
+    public function testEditLesson()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -253,15 +265,20 @@ class LessonsTest extends AbstractTest
         );
         $lessonsCourseId = $form['lesson[Course]']->getValue();
         $client->submit($form);
-        $course = static::getContainer()->get(CourseRepository::class)->findOneBy(['id' => $lessonsCourseId ]);
-        $lesson = static::getContainer()->get(LessonRepository::class)->findOneBy(['Course' => $course, 'SequenceNumber' => 999]);
+        $course = static::getContainer()
+            ->get(CourseRepository::class)
+            ->findOneBy(['id' => $lessonsCourseId ]);
+        $lesson = static::getContainer()
+            ->get(LessonRepository::class)
+            ->findOneBy(['Course' => $course, 'SequenceNumber' => 999]);
         $this->assertNotNull($lesson);
         $crawler = $client->followRedirect();
         $this->assertResponseOk();
         $this->assertSame($course->getName(), $crawler->filter('.course_page_header')->text());
     }
 
-    public function testRemoveLesson(){
+    public function testRemoveLesson()
+    {
         $client = $this->getClient();
         $crawler = $this->getClient()->request('GET', '/courses');
         $this->assertResponseOk();
@@ -272,7 +289,9 @@ class LessonsTest extends AbstractTest
 
         $nameOfCourse = $crawler->filter('.course_page_header')->text();
         $descriptionOfCourse = $crawler->filter('.course_description')->text();
-        $course = static::getContainer()->get(CourseRepository::class)->findOneBy(['Name' => $nameOfCourse, 'Description' => $descriptionOfCourse ]);
+        $course = static::getContainer()
+            ->get(CourseRepository::class)
+            ->findOneBy(['Name' => $nameOfCourse, 'Description' => $descriptionOfCourse ]);
         $courseLessonCountBefore = count($course->getLessons());
 
         $lessonLink = $crawler->filter('.link_to_lesson')->link();
@@ -287,7 +306,9 @@ class LessonsTest extends AbstractTest
 
         $nameOfCourse = $crawler->filter('.course_page_header')->text();
         $descriptionOfCourse = $crawler->filter('.course_description')->text();
-        $course = static::getContainer()->get(CourseRepository::class)->findOneBy(['Name' => $nameOfCourse, 'Description' => $descriptionOfCourse ]);
+        $course = static::getContainer()
+            ->get(CourseRepository::class)
+            ->findOneBy(['Name' => $nameOfCourse, 'Description' => $descriptionOfCourse ]);
         $courseLessonCountAfter = count($course->getLessons());
         $this->assertEquals($courseLessonCountBefore - 1, $courseLessonCountAfter);
     }

@@ -48,7 +48,8 @@ class Course
         $this->Lessons = new ArrayCollection();
     }
 
-    public function __toString() {
+    public function __toString()
+    {
         return $this->Name;
     }
 

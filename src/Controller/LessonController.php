@@ -21,18 +21,24 @@ class LessonController extends AbstractController
      * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/new", name="app_lesson_new", methods={"GET", "POST"})
      */
-    public function new(Request $request, LessonRepository $lessonRepository, CourseRepository $courseRepository): Response
-    {
+    public function new(
+        Request $request,
+        LessonRepository $lessonRepository,
+        CourseRepository $courseRepository
+    ): Response {
         $lesson = new Lesson();
         $courseId = $request->query->get("id", null);
         $lesson->setCourse($courseRepository->find($courseId));
         $form = $this->createForm(LessonType::class, $lesson);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-
             $lessonRepository->add($lesson, true);
 
-            return $this->redirectToRoute('app_course_show', ['id' => $lesson->getCourse()->getId()], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute(
+                'app_course_show',
+                ['id' => $lesson->getCourse()->getId()],
+                Response::HTTP_SEE_OTHER
+            );
         }
 
         return $this->renderForm('lesson/new.html.twig', [
@@ -57,15 +63,22 @@ class LessonController extends AbstractController
      * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/{id}/edit", name="app_lesson_edit", methods={"GET", "POST"})
      */
-    public function edit(Request $request, Lesson $lesson, LessonRepository $lessonRepository): Response
-    {
+    public function edit(
+        Request $request,
+        Lesson $lesson,
+        LessonRepository $lessonRepository
+    ): Response {
         $form = $this->createForm(LessonType::class, $lesson);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $lessonRepository->add($lesson, true);
 
-            return $this->redirectToRoute('app_course_show', ['id' => $lesson->getCourse()->getId()], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute(
+                'app_course_show',
+                ['id' => $lesson->getCourse()->getId()],
+                Response::HTTP_SEE_OTHER
+            );
         }
 
         return $this->renderForm('lesson/edit.html.twig', [
@@ -78,12 +91,24 @@ class LessonController extends AbstractController
      * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/{id}", name="app_lesson_delete", methods={"POST"})
      */
-    public function delete(Request $request, Lesson $lesson, LessonRepository $lessonRepository): Response
-    {
-        if ($this->isCsrfTokenValid('delete'.$lesson->getId(), $request->request->get('_token'))) {
+    public function delete(
+        Request $request,
+        Lesson $lesson,
+        LessonRepository $lessonRepository
+    ): Response {
+        if (
+            $this->isCsrfTokenValid(
+                'delete' . $lesson->getId(),
+                $request->request->get('_token')
+            )
+        ) {
             $lessonRepository->remove($lesson, true);
         }
 
-        return $this->redirectToRoute('app_course_show', ['id' => $lesson->getCourse()->getId()], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute(
+            'app_course_show',
+            ['id' => $lesson->getCourse()->getId()],
+            Response::HTTP_SEE_OTHER
+        );
     }
 }

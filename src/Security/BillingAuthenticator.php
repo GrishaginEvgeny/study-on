@@ -3,6 +3,7 @@
 namespace App\Security;
 
 use App\Exception\BillingUnavailableException;
+use App\Services\BillingUserService;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +20,6 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\PasswordC
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 use Symfony\Component\Security\Http\Util\TargetPathTrait;
-use App\Services\BillingService;
 
 class BillingAuthenticator extends AbstractLoginFormAuthenticator
 {
@@ -28,9 +28,9 @@ class BillingAuthenticator extends AbstractLoginFormAuthenticator
     public const LOGIN_ROUTE = 'app_login';
 
     private UrlGeneratorInterface $urlGenerator;
-    private BillingService $billingService;
+    private BillingUserService $billingService;
 
-    public function __construct(UrlGeneratorInterface $urlGenerator, BillingService $billingService)
+    public function __construct(UrlGeneratorInterface $urlGenerator, BillingUserService $billingService)
     {
         $this->urlGenerator = $urlGenerator;
         $this->billingService = $billingService;
@@ -40,14 +40,14 @@ class BillingAuthenticator extends AbstractLoginFormAuthenticator
     {
         $email = $request->request->get('email', '');
         $password = $request->request->get('password', '');
-        $userCredentials =json_encode( [
+        $userCredentials = json_encode([
             'username' => $email,
             'password' => $password
         ]);
 
         $request->getSession()->set(Security::LAST_USERNAME, $email);
 
-        $loadUser = function($userCredentials){
+        $loadUser = function ($userCredentials) {
             try {
                 return $this->billingService->auth($userCredentials);
             } catch (BillingUnavailableException | \Exception $e) {

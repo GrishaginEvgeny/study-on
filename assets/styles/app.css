@@ -37,4 +37,14 @@ input{
     background: #eee;
 }
 
+.form-check-input:checked{
+    background-color: black;
+    border-color: white;
+}
 
+.form-check-input:focus{
+    color: #212529;
+    border-color: #212529;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(33,37,41,.25);
+}

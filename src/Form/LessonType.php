@@ -33,7 +33,7 @@ class LessonType extends AbstractType
                 'label' => 'Название',
                 'constraints' => [
                     new NotBlank(['message' => 'Поле "Название" не должно быть пустым']),
-                    new Length( [
+                    new Length([
                         'max' => 255,
                         'maxMessage' => 'Поле "Название" не должно быть длинной более {{ limit }} символов']),
                 ],
@@ -41,18 +41,23 @@ class LessonType extends AbstractType
             ->add('SequenceNumber', NumberType::class, [
                 'label' => 'Порядковый номер',
                 'constraints' => [
-                    new GreaterThanOrEqual(['value'=> 1, 'message' => 'Порядковый номер должен быть больше или равен {{ compared_value }}']),
-                    new LessThanOrEqual(['value'=> 10000, 'message' => 'Порядковый номер должен быть меньше или равен {{ compared_value }}']),
+                    new GreaterThanOrEqual(['value' => 1,
+                        'message' => 'Порядковый номер должен быть больше или равен {{ compared_value }}']),
+                    new LessThanOrEqual(['value' => 10000,
+                        'message' => 'Порядковый номер должен быть меньше или равен {{ compared_value }}']),
                     new NotBlank(['message' => 'Порядковый номер" не должно быть пустым']),
                 ]
             ])
-            ->add('Content', TextareaType::class,
+            ->add(
+                'Content',
+                TextareaType::class,
                 [
                     'label' => 'Содержимое урока',
                     'constraints' => [
                         new NotBlank(['message' => 'Поле "Содержимое урока" не должно быть пустым']),
                     ],
-                ])
+                ]
+            )
             ->add('Course', HiddenType::class)
         ;
 

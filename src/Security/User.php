@@ -14,6 +14,8 @@ class User implements UserInterface
 
     private $apiToken;
 
+    private $refreshToken;
+
     public function getEmail(): ?string
     {
         return $this->email;
@@ -114,5 +116,27 @@ class User implements UserInterface
         $this->balance = $Balance;
 
         return $this;
+    }
+
+    public function getRefreshToken(): string
+    {
+        return $this->refreshToken;
+    }
+
+    public function setRefreshToken(string $token): self
+    {
+        $this->refreshToken = $token;
+
+        return $this;
+    }
+
+    public function getJWTPayload(): ?array
+    {
+        if (!$this->apiToken) {
+            return null;
+        }
+        $tokenParts = explode(".", $this->apiToken);
+        $tokenPayload = base64_decode($tokenParts[1]);
+        return json_decode($tokenPayload, true);
     }
 }

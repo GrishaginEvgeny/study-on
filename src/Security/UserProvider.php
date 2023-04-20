@@ -2,6 +2,7 @@
 
 namespace App\Security;
 
+use App\Services\BillingUserService;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -11,6 +12,12 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
 {
+    private BillingUserService $billingService;
+
+    public function __construct(BillingUserService $billingService)
+    {
+        $this->billingService = $billingService;
+    }
     /**
      * Symfony calls this method if you use features like switch_user
      * or remember_me.
@@ -52,6 +59,19 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
     {
         if (!$user instanceof User) {
             throw new UnsupportedUserException(sprintf('Invalid user class "%s".', get_class($user)));
+        }
+        $decodedPayload = $user->getJWTPayload();
+        $interval = \DateInterval::createFromDateString('15 second');
+        $exp = (new \DateTime())->setTimestamp($decodedPayload['exp']);
+        $realTimeMoment = (new \DateTime())->add($interval);
+        if ($realTimeMoment >= $exp) {
+            try {
+                $newTokenUser = $this->billingService->refresh($user->getRefreshToken());
+                $user->setApiToken($newTokenUser->getApiToken());
+                $user->setRefreshToken($newTokenUser->getRefreshToken());
+            } catch (\Exception $e) {
+                throw new \Exception($e->getMessage());
+            }
         }
 
         return $user;
