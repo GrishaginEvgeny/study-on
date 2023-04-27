@@ -70,9 +70,6 @@ class BillingUserService
             throw new \Exception(json_encode($arrayedResponse['message']));
         }
 
-        if (array_key_exists('code', $arrayedResponse) && $arrayedResponse['code'] === 401) {
-            throw new \Exception('Ошибка авторизации. Проверьте правильность введенных данных!');
-        }
 
         return $this->currentUser($arrayedResponse['token'], $arrayedResponse['refresh_token']);
     }

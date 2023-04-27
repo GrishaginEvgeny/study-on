@@ -6,11 +6,13 @@ use App\Entity\Lesson;
 use App\Form\LessonType;
 use App\Repository\CourseRepository;
 use App\Repository\LessonRepository;
+use App\Services\BillingCoursesService;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
  * @Route("/lessons")
@@ -52,8 +54,14 @@ class LessonController extends AbstractController
      * @IsGranted("ROLE_USER")
      * @Route("/{id}", name="app_lesson_show", methods={"GET"})
      */
-    public function show(Lesson $lesson): Response
+    public function show(Lesson $lesson, BillingCoursesService $billingCoursesService): Response
     {
+        $transactionsOnLessonCourse = $billingCoursesService->transactions($this->getUser(),
+            ['course_code' => $lesson->getCourse()->getCharacterCode(),
+                'skip_expired' => true]);
+        if(count($transactionsOnLessonCourse) === 0) {
+           throw new AccessDeniedException('У вас доступа к этому курсу.');
+        }
         return $this->render('lesson/show.html.twig', [
             'lesson' => $lesson,
         ]);

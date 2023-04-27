@@ -23,3 +23,7 @@ services:
     App\Services\BillingUserService:
         public: true
         autowire: true
+
+    App\Services\BillingCoursesService:
+        public: true
+        autowire: true

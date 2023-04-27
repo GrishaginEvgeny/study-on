@@ -157,14 +157,14 @@ class UserSecurityController extends AbstractController
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $user = $billingService->register(json_encode($form->getData()));
+                $user = $billingService->register(json_encode($form->getData(), JSON_THROW_ON_ERROR));
                 return $authenticator->authenticateUser(
                     $user,
                     $formAuthenticator,
                     $request
                 );
             } catch (\Exception $e) {
-                    $errors = json_decode($e->getMessage(), true);
+                    $errors = json_decode($e->getMessage(), true, 512, JSON_THROW_ON_ERROR);
                 foreach ($errors as $key => $error) {
                     $form->get($key)->addError(new FormError($error));
                     if ($key === 'password') {

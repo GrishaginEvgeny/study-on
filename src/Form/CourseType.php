@@ -10,6 +10,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Length;
+use Symfony\Component\Validator\Constraints\Regex;
 
 class CourseType extends AbstractType
 {
@@ -19,19 +20,20 @@ class CourseType extends AbstractType
             ->add('CharacterCode', TextType::class, [
                 'label' => 'Символьный код',
                 'constraints' => [
-                    new NotBlank(['message' => 'Поле "Cимвольный код" не должно быть пустым']),
+                    new NotBlank(['message' => 'Поле "Cимвольный код" не должно быть пустым.']),
                     new Length([
                         'max' => 255,
-                        'maxMessage' => 'Поле "Cимвольный код" не должно быть длинной более {{ limit }} символов']),
+                        'maxMessage' => 'Поле "Cимвольный код" не должно быть длинной более {{ limit }} символов.']),
+                    new Regex(['pattern' => '/^[A-Za-z0-9]+$/','message' => 'В поле "Cимвольный код" могут содержаться только цифры и латиница.'])
                 ],
             ])
             ->add('Name', TextType::class, [
                 'label' => 'Название',
                 'constraints' => [
-                    new NotBlank(['message' => 'Поле "Название" не должно быть пустым']),
+                    new NotBlank(['message' => 'Поле "Название" не должно быть пустым.']),
                     new Length([
                         'max' => 255,
-                        'maxMessage' => 'Поле "Название" не должно быть длинной более {{ limit }} символов']),
+                        'maxMessage' => 'Поле "Название" не должно быть длинной более {{ limit }} символов.']),
                 ],
             ])
             ->add('Description', TextareaType::class, [
@@ -39,7 +41,7 @@ class CourseType extends AbstractType
                 'constraints' => [
                     new Length([
                         'max' => 1000,
-                        'maxMessage' => 'Поле "Описание" не должно быть длинной более {{ limit }} символов']),
+                        'maxMessage' => 'Поле "Описание" не должно быть длинной более {{ limit }} символов.']),
                 ],
             ])
         ;

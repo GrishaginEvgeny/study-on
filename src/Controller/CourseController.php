@@ -116,9 +116,11 @@ class CourseController extends AbstractController
         $user = $this->getUser();
         try {
             $billingCoursesService->buy($course->getCharacterCode(), $user);
-            $notifier->send(new Notification('Курс успешно оплачен.', ['browser']));
+            $notification = (new Notification('Курс успешно оплачен.', ['browser']))->emoji("👍");
+            $notifier->send($notification);
         } catch (\Exception $e) {
-            $notifier->send(new Notification($e->getMessage(), ['browser']));
+            $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
+            $notifier->send($notification);
             return $this->redirectToRoute('app_course_show', ['id' => $course->getId()], 301);
         }
         return $this->redirectToRoute('app_course_show', ['id' => $course->getId()], 301);

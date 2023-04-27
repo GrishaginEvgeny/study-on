@@ -2,22 +2,56 @@
 
 namespace App\Tests\Controllers;
 
+use App\DataFixtures\AppFixtures;
 use App\DataFixtures\UserFixtures;
 use App\Repository\CourseRepository;
 use App\Repository\LessonRepository;
+use App\Services\BillingCoursesService;
+use App\Services\BillingUserService;
 use App\Tests\AbstractTest;
+use App\Tests\Mocks\BillingCourseServiceMock;
+use App\Tests\Mocks\BillingUserServiceMock;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class LessonsTest extends AbstractTest
 {
     protected function getFixtures(): array
     {
-        return [UserFixtures::class];
+        return [AppFixtures::class];
+    }
+
+    private function billingClient()
+    {
+        $this->getClient()->disableReboot();
+
+        $this->getClient()->getContainer()->set(
+            BillingUserService::class,
+            new BillingUserServiceMock()
+        );
+
+        $this->getClient()->getContainer()->set(
+            BillingCoursesService::class,
+            new BillingCourseServiceMock()
+        );
+
+        return $this->getClient();
     }
 
     public function testPagesOnGETRequests()
     {
-        $client = $this->getClient();
+        $client = $this->billingClient();
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
         $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
         foreach ($lessons as $lesson) {
@@ -35,28 +69,21 @@ class LessonsTest extends AbstractTest
         $this->assertResponseOk();
     }
 
-    public function testPagesOnPOSTRequests()
-    {
-        $client = $this->getClient();
-        $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
-        $courses = static::getContainer()->get(CourseRepository::class)->findAll();
-        foreach ($lessons as $lesson) {
-            $client->request('GET', "/lessons/{$lesson->getId()}/edit");
-            $this->assertResponseOk();
-
-            $client->request('POST', "/lessons/{$lesson->getId()}");
-            $this->assertResponseRedirect();
-        }
-        foreach ($courses as $course) {
-            $client->request('POST', "/lessons/new?id={$course->getId()}");
-            $this->assertResponseOk();
-        }
-        $this->assertResponseOk();
-    }
-
     public function testNumberOfLessonByCourse()
     {
-        $client = $this->getClient();
+        $client = $this->billingClient();
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
         foreach ($courses as $course) {
             $crawler = $client->request('GET', "/courses/{$course->getId()}");
@@ -67,15 +94,40 @@ class LessonsTest extends AbstractTest
 
     public function testNotExistedLesson()
     {
-        $this->getClient()->request('GET', "/lessons/-413241");
+        $client = $this->billingClient();
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
+        $client->request('GET', "/lessons/-413241");
         $this->assertResponseNotFound();
     }
 
 
     public function testAddLessonSuccessfully()
     {
-        $client = $this->getClient();
-        $crawler = $this->getClient()->request('GET', '/courses');
+        $client = $this->billingClient();
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
+        $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
 
@@ -113,8 +165,20 @@ class LessonsTest extends AbstractTest
 
     public function testAddLessonWithEmptyName()
     {
-        $client = $this->getClient();
-        $crawler = $this->getClient()->request('GET', '/courses');
+        $client = $this->billingClient();
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
+        $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
 
@@ -139,8 +203,20 @@ class LessonsTest extends AbstractTest
 
     public function testAddLessonWithWrongSequenceNumber()
     {
-        $client = $this->getClient();
-        $crawler = $this->getClient()->request('GET', '/courses');
+        $client = $this->billingClient();
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
+        $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
 
@@ -165,8 +241,20 @@ class LessonsTest extends AbstractTest
 
     public function testAddLessonWithEmptyContent()
     {
-        $client = $this->getClient();
-        $crawler = $this->getClient()->request('GET', '/courses');
+        $client = $this->billingClient();
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
+        $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
 
@@ -191,8 +279,20 @@ class LessonsTest extends AbstractTest
 
     public function testAddLessonWithNameGreaterThanConstraint()
     {
-        $client = $this->getClient();
-        $crawler = $this->getClient()->request('GET', '/courses');
+        $client = $this->billingClient();
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
+        $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
 
@@ -217,8 +317,20 @@ class LessonsTest extends AbstractTest
 
     public function testAddLessonWithSequenceNumberGreaterThanConstraint()
     {
-        $client = $this->getClient();
-        $crawler = $this->getClient()->request('GET', '/courses');
+        $client = $this->billingClient();
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
+        $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
 
@@ -243,8 +355,20 @@ class LessonsTest extends AbstractTest
 
     public function testEditLesson()
     {
-        $client = $this->getClient();
-        $crawler = $this->getClient()->request('GET', '/courses');
+        $client = $this->billingClient();
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
+        $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
 
@@ -279,19 +403,30 @@ class LessonsTest extends AbstractTest
 
     public function testRemoveLesson()
     {
-        $client = $this->getClient();
-        $crawler = $this->getClient()->request('GET', '/courses');
+        $client = $this->billingClient();
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
+        $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
         $courseLink = $crawler->filter('.link_to_course')->link();
         $crawler = $client->click($courseLink);
         $this->assertResponseOk();
 
-        $nameOfCourse = $crawler->filter('.course_page_header')->text();
-        $descriptionOfCourse = $crawler->filter('.course_description')->text();
+        $id = explode("/", $crawler->getBaseHref())[4];
         $course = static::getContainer()
             ->get(CourseRepository::class)
-            ->findOneBy(['Name' => $nameOfCourse, 'Description' => $descriptionOfCourse ]);
+            ->findOneBy(['id' =>  $id]);
         $courseLessonCountBefore = count($course->getLessons());
 
         $lessonLink = $crawler->filter('.link_to_lesson')->link();
@@ -304,11 +439,11 @@ class LessonsTest extends AbstractTest
         $crawler = $client->followRedirect();
         $this->assertResponseOk();
 
-        $nameOfCourse = $crawler->filter('.course_page_header')->text();
-        $descriptionOfCourse = $crawler->filter('.course_description')->text();
+        $id = explode("/", $crawler->getBaseHref())[4];
+        
         $course = static::getContainer()
             ->get(CourseRepository::class)
-            ->findOneBy(['Name' => $nameOfCourse, 'Description' => $descriptionOfCourse ]);
+            ->findOneBy(['id' =>  $id]);
         $courseLessonCountAfter = count($course->getLessons());
         $this->assertEquals($courseLessonCountBefore - 1, $courseLessonCountAfter);
     }

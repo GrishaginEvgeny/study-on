@@ -32,21 +32,22 @@ class LessonType extends AbstractType
             ->add('Name', TextType::class, [
                 'label' => 'Название',
                 'constraints' => [
-                    new NotBlank(['message' => 'Поле "Название" не должно быть пустым']),
+                    new NotBlank(['message' => 'Поле "Название" не должно быть пустым.']),
                     new Length([
                         'max' => 255,
-                        'maxMessage' => 'Поле "Название" не должно быть длинной более {{ limit }} символов']),
+                        'maxMessage' => 'Поле "Название" не должно быть длинной более {{ limit }} символов.']),
                 ],
             ])
             ->add('SequenceNumber', NumberType::class, [
                 'label' => 'Порядковый номер',
                 'constraints' => [
                     new GreaterThanOrEqual(['value' => 1,
-                        'message' => 'Порядковый номер должен быть больше или равен {{ compared_value }}']),
+                        'message' => 'Порядковый номер должен быть больше или равен {{ compared_value }}.']),
                     new LessThanOrEqual(['value' => 10000,
-                        'message' => 'Порядковый номер должен быть меньше или равен {{ compared_value }}']),
-                    new NotBlank(['message' => 'Порядковый номер" не должно быть пустым']),
-                ]
+                        'message' => 'Порядковый номер должен быть меньше или равен {{ compared_value }}.']),
+                    new NotBlank(['message' => 'Порядковый номер" не должно быть пустым.']),
+                ],
+                'invalid_message' => 'В поле "Порядковый номер" могут быть введены только целые числа.'
             ])
             ->add(
                 'Content',
@@ -54,7 +55,7 @@ class LessonType extends AbstractType
                 [
                     'label' => 'Содержимое урока',
                     'constraints' => [
-                        new NotBlank(['message' => 'Поле "Содержимое урока" не должно быть пустым']),
+                        new NotBlank(['message' => 'Поле "Содержимое урока" не должно быть пустым.']),
                     ],
                 ]
             )

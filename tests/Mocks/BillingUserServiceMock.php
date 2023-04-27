@@ -3,10 +3,10 @@
 namespace App\Tests\Mocks;
 
 use App\Security\User;
-use App\Services\BillingService;
+use App\Services\BillingUserService;
 use Symfony\Component\HttpFoundation\Response;
 
-class BillingServiceMock extends BillingService
+class BillingUserServiceMock extends BillingUserService
 {
     public function auth(string $jsonedCredentials): User
     {
@@ -15,26 +15,35 @@ class BillingServiceMock extends BillingService
             ($arrayedCredentials['username'] === 'admin@study.com' && $arrayedCredentials['password'] === 'admin')
             || ($arrayedCredentials['username'] === 'usualuser@study.com' && $arrayedCredentials['password'] === 'user')
         ) {
-            return $this->currentUser(base64_encode(json_encode([
+            $refreshToken = base64_encode(json_encode([
                 'username' => $arrayedCredentials['username'],
                 'password' => $arrayedCredentials['password'],
                 'roles' => $arrayedCredentials['username'] === 'admin@study.com' ? ['ROLE_SUPER_ADMIN'] : ['ROLE_USER'],
-                'balance' => 0
-            ])));
+                'balance' => $arrayedCredentials['username'] === 'admin@study.com' ? 111111111111 : 1000
+            ]));
+            $token = base64_encode(json_encode([
+                'username' => $arrayedCredentials['username'],
+                'iat' => (new \DateTime('now'))->getTimestamp(),
+                'exp' => (new \DateTime('+ 1 hour'))->getTimestamp(),
+                'roles' => $arrayedCredentials['username'] === 'admin@study.com' ? ['ROLE_SUPER_ADMIN'] : ['ROLE_USER'],
+            ]));
+            $token = "filler.{$token}";
+            return $this->currentUser($token, $refreshToken);
         } else {
             throw new \Exception(json_encode(['code' => 400,'message' => 'Invalid Credentials.']));
         }
     }
 
-    public function currentUser(string $token): User
+    public function currentUser(string $token, string $refreshToken): User
     {
-        $arrayedCredentials = json_decode(base64_decode($token, true), true, 512, JSON_THROW_ON_ERROR);
+        $arrayedCredentials = json_decode(base64_decode($refreshToken, true), true, 512, JSON_THROW_ON_ERROR);
         try {
             $user = new User();
             $user->setEmail($arrayedCredentials['username'])
                 ->setApiToken($token)
                 ->setRoles($arrayedCredentials['roles'])
-                ->setBalance($arrayedCredentials['balance']);
+                ->setBalance($arrayedCredentials['username'] === 'admin@study.com' ? 111111111111 : 1000)
+                ->setRefreshToken($refreshToken);
             return $user;
         } catch (\Exception $e) {
             throw new \Exception(json_encode(['code' => 400,'message' => 'Invalid JWT Token.']));
@@ -74,11 +83,42 @@ class BillingServiceMock extends BillingService
                     "username" => 'Поле e-mail не может быт пустым.'
                 ]));
         }
-        return $this->currentUser(base64_encode(json_encode([
+        $refreshToken = base64_encode(json_encode([
             'username' => $arrayedCredentials['username'],
             'password' => $arrayedCredentials['password'],
             'roles' => ['ROLE_USER'],
-            'balance' => 0
-        ])));
+            'balance' => 1000
+        ]));
+        $token = base64_encode(json_encode([
+            'username' => $arrayedCredentials['username'],
+            'iat' => (new \DateTime('now'))->getTimestamp(),
+            'exp' => (new \DateTime('+ 1 hour'))->getTimestamp(),
+            'roles' => ['ROLE_USER'],
+        ]));
+        $token = "filler.{$token}";
+        return $this->currentUser($token, $refreshToken);
+    }
+
+    /**
+     * @throws \JsonException
+     */
+    public function refresh(string $refreshToken): User
+    {
+        $arrayedPayload = json_decode(base64_decode($refreshToken, true),
+            true, 512, JSON_THROW_ON_ERROR);
+        $user = new User();
+        $token = base64_encode(json_encode([
+            'username' => $arrayedPayload['username'],
+            'iat' => (new \DateTime('now'))->getTimestamp(),
+            'exp' => (new \DateTime('+ 1 hour'))->getTimestamp(),
+            'roles' => ['ROLE_USER'],
+        ]));
+        $token = "filler.{$token}";
+        $user->setEmail($arrayedPayload['username'])
+            ->setApiToken($token)
+            ->setRoles($arrayedPayload['username'] === 'admin@study.com' ? ['ROLE_SUPER_ADMIN'] : ['ROLE_USER'])
+            ->setBalance($arrayedPayload['username'] === 'admin@study.com' ? 111111111111 : 1000)
+            ->setRefreshToken($refreshToken);
+        return $user;
     }
 }

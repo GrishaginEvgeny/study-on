@@ -1,23 +1,30 @@
 <?php
 
-namespace App\Tests\Api;
+namespace App\Tests\Security;
 
-use App\DataFixtures\UserFixtures;
+use App\DataFixtures\AppFixtures;
 use App\Repository\CourseRepository;
 use App\Repository\LessonRepository;
-use App\Services\BillingService;
+use App\Services\BillingCoursesService;
+use App\Services\BillingUserService;
 use App\Tests\AbstractTest;
-use App\Tests\Mocks\BillingServiceMock;
+use App\Tests\Mocks\BillingCourseServiceMock;
+use App\Tests\Mocks\BillingUserServiceMock;
 
-class UserApiTest extends AbstractTest
+class UserTest extends AbstractTest
 {
     private function billingClient()
     {
         $this->getClient()->disableReboot();
 
         $this->getClient()->getContainer()->set(
-            BillingService::class,
-            new BillingServiceMock()
+            BillingUserService::class,
+            new BillingUserServiceMock()
+        );
+
+        $this->getClient()->getContainer()->set(
+            BillingCoursesService::class,
+            new BillingCourseServiceMock()
         );
 
         return $this->getClient();
@@ -25,7 +32,7 @@ class UserApiTest extends AbstractTest
 
     protected function getFixtures(): array
     {
-        return [UserFixtures::class];
+        return [AppFixtures::class];
     }
 
     public function testCoursesNonAuth()
@@ -315,6 +322,7 @@ class UserApiTest extends AbstractTest
         $this->assertResponseOk();
         $logoutLink = $crawler->filter('.logout-link')->link();
         $client->click($logoutLink);
+        $this->assertResponseRedirect();
         $crawler = $client->followRedirect();
         $this->assertResponseOk();
         $this->assertCount(1, $crawler->filter('.login-link'));
@@ -380,8 +388,8 @@ class UserApiTest extends AbstractTest
         $this->assertResponseOk();
         $this->assertSelectorTextContains(
             '.invalid-feedback',
-            'Пароль должен содержать как один из спец. символов (.!@#$%^&*), 
-            прописную и строчные буквы латинского алфавита и цифру.'
+            "Пароль должен содержать как один из спец. символов (.!@#$%^&*), ".
+            "прописную и строчные буквы латинского алфавита и цифру."
         );
     }
 
