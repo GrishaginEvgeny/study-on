@@ -10,6 +10,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Entity(repositoryClass=LessonRepository::class)
+ * @ORM\Table(name="Lesson")
  */
 class Lesson
 {
@@ -23,23 +24,23 @@ class Lesson
     /**
      * @ORM\Column(type="string", length=255)
      */
-    private $Name;
+    private $name;
 
     /**
      * @ORM\Column(type="integer")
      */
-    private $SequenceNumber;
+    private $sequenceNumber;
 
     /**
-     * @ORM\ManyToOne(targetEntity=Course::class, inversedBy="Lessons")
+     * @ORM\ManyToOne(targetEntity=Course::class, inversedBy="lessons")
      * @ORM\JoinColumn(nullable=false)
      */
-    private $Course;
+    private $course;
 
     /**
      * @ORM\Column(type="text")
      */
-    private $Content;
+    private $content;
 
     public function __construct()
     {
@@ -52,48 +53,48 @@ class Lesson
 
     public function getName(): ?string
     {
-        return $this->Name;
+        return $this->name;
     }
 
-    public function setName(string $Name): self
+    public function setName(string $name): self
     {
-        $this->Name = $Name;
+        $this->name = $name;
 
         return $this;
     }
 
     public function getSequenceNumber(): ?int
     {
-        return $this->SequenceNumber;
+        return $this->sequenceNumber;
     }
 
-    public function setSequenceNumber(int $SequenceNumber): self
+    public function setSequenceNumber(int $sequenceNumber): self
     {
-        $this->SequenceNumber = $SequenceNumber;
+        $this->sequenceNumber = $sequenceNumber;
 
         return $this;
     }
 
     public function getCourse(): ?Course
     {
-        return $this->Course;
+        return $this->course;
     }
 
-    public function setCourse(?Course $Course): self
+    public function setCourse(?Course $course): self
     {
-        $this->Course = $Course;
+        $this->course = $course;
 
         return $this;
     }
 
     public function getContent(): ?string
     {
-        return $this->Content;
+        return $this->content;
     }
 
-    public function setContent(string $Content): self
+    public function setContent(string $content): self
     {
-        $this->Content = $Content;
+        $this->content = $content;
 
         return $this;
     }

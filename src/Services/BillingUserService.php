@@ -9,34 +9,35 @@ class BillingUserService
     /**
      * @throws \Exception
      */
-    public function auth(string $jsonedCredentials): User
+    public function auth(string $jsonCredentials): User
     {
-        $Credentials = json_decode($jsonedCredentials, true);
+        $credentials = json_decode($jsonCredentials, true);
         $api = new BaseApiService();
-        $jsonedResponse = $api->post('/api/v1/auth', $Credentials, [
+        $jsonResponse = $api->post('/api/v1/auth', $credentials, [
             'Content-Type: application/json',
         ]);
-        $arrayedResponse = json_decode($jsonedResponse, true);
-        if (array_key_exists('message', $arrayedResponse)) {
-            throw new \Exception($arrayedResponse['message']);
+        $response = json_decode($jsonResponse, true);
+        if (array_key_exists('message', $response)) {
+            throw new \Exception($response['message']);
         }
-        return $this->currentUser($arrayedResponse['token'], $arrayedResponse['refresh_token']);
+        return $this->currentUser($response['token'], $response['refresh_token']);
     }
+
     /**
      * @throws \Exception
      */
     public function currentUser(string $token, string $refreshToken): User
     {
         $api = new BaseApiService();
-        $jsonedResponse = $api->get('/api/v1/users/current', null, ["Authorization: Bearer {$token}"]);
-        $arrayedResponse = json_decode($jsonedResponse, true);
-        if (array_key_exists('message', $arrayedResponse)) {
-            throw new \Exception($arrayedResponse['message']);
+        $jsonResponse = $api->get('/api/v1/users/current', null, ["Authorization: Bearer {$token}"]);
+        $response = json_decode($jsonResponse, true);
+        if (array_key_exists('message', $response)) {
+            throw new \Exception($response['message']);
         }
         $user = new User();
-        $user->setEmail($arrayedResponse['username']);
-        $user->setBalance($arrayedResponse['balance']);
-        $user->setRoles($arrayedResponse['roles']);
+        $user->setEmail($response['username']);
+        $user->setBalance($response['balance']);
+        $user->setRoles($response['roles']);
         $user->setApiToken($token);
         $user->setRefreshToken($refreshToken);
         return $user;
@@ -45,32 +46,32 @@ class BillingUserService
     /**
      * @throws \Exception
      */
-    public function register(string $jsonedCredentials): User
+    public function register(string $jsonCredentials): User
     {
-        $Credentials = json_decode($jsonedCredentials, true);
+        $credentials = json_decode($jsonCredentials, true);
         $api = new BaseApiService();
-        $jsonedResponse = $api->post('/api/v1/register', $Credentials, [
+        $jsonResponse = $api->post('/api/v1/register', $credentials, [
             'Content-Type: application/json',
         ]);
-        $arrayedResponse = json_decode($jsonedResponse, true);
-        if (array_key_exists('errors', $arrayedResponse)) {
-            throw new \Exception(json_encode($arrayedResponse['errors']));
+        $response = json_decode($jsonResponse, true);
+        if (array_key_exists('errors', $response)) {
+            throw new \Exception(json_encode($response['errors']));
         }
-        return $this->currentUser($arrayedResponse['token'], $arrayedResponse['refresh_token']);
+        return $this->currentUser($response['token'], $response['refresh_token']);
     }
 
     public function refresh(string $refreshToken): User
     {
         $api = new BaseApiService();
-        $jsonedResponse = $api->post('/api/v1/token/refresh', ['refresh_token' => $refreshToken], [
+        $jsonResponse = $api->post('/api/v1/token/refresh', ['refresh_token' => $refreshToken], [
             'Content-Type: application/json',
         ]);
-        $arrayedResponse = json_decode($jsonedResponse, true);
-        if (array_key_exists('message', $arrayedResponse)) {
-            throw new \Exception(json_encode($arrayedResponse['message']));
+        $response = json_decode($jsonResponse, true);
+        if (array_key_exists('message', $response)) {
+            throw new \Exception(json_encode($response['message']));
         }
 
 
-        return $this->currentUser($arrayedResponse['token'], $arrayedResponse['refresh_token']);
+        return $this->currentUser($response['token'], $response['refresh_token']);
     }
 }

@@ -30,6 +30,38 @@ class UserTest extends AbstractTest
         return $this->getClient();
     }
 
+    private function adminLogin(?\Symfony\Component\BrowserKit\AbstractBrowser $client)
+    {
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
+    }
+
+    private function userLogin(?\Symfony\Component\BrowserKit\AbstractBrowser $client)
+    {
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'usualuser@study.com',
+                'password' => 'user'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
+    }
+
     protected function getFixtures(): array
     {
         return [AppFixtures::class];
@@ -130,18 +162,7 @@ class UserTest extends AbstractTest
     public function testCourseEditPageOnUser()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                    'email' => 'usualuser@study.com',
-                    'password' => 'user'
-                ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->userLogin($client);
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
         foreach ($courses as $course) {
             $client->request('GET', "/courses/{$course->getId()}/edit");
@@ -152,18 +173,7 @@ class UserTest extends AbstractTest
     public function testLessonPageOnUser()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                    'email' => 'usualuser@study.com',
-                    'password' => 'user'
-                ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->userLogin($client);
         $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
         foreach ($lessons as $lesson) {
             $crawler = $client->request('GET', "/lessons/{$lesson->getId()}");
@@ -178,18 +188,7 @@ class UserTest extends AbstractTest
     public function testNewLessonPageOnUser()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                    'email' => 'usualuser@study.com',
-                    'password' => 'user'
-                ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->userLogin($client);
         $client->request('GET', "/lessons/new");
         $this->assertResponseForbidden();
     }
@@ -197,18 +196,7 @@ class UserTest extends AbstractTest
     public function testEditLessonOnUser()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'usualuser@study.com',
-                'password' => 'user'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->userLogin($client);
         $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
         foreach ($lessons as $lesson) {
             $client->request('GET', "/lessons/{$lesson->getId()}/edit");
@@ -219,18 +207,7 @@ class UserTest extends AbstractTest
     public function testNewCoursePageOnAdmin()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $client->request('GET', "/courses/new");
         $this->assertResponseOk();
     }
@@ -238,18 +215,7 @@ class UserTest extends AbstractTest
     public function testCourseEditPageOnAdmin()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
         foreach ($courses as $course) {
             $client->request('GET', "/courses/{$course->getId()}/edit");
@@ -260,18 +226,7 @@ class UserTest extends AbstractTest
     public function testLessonNewPageOnAdmin()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $courses = static::getContainer()->get(CourseRepository::class)->findAll();
         foreach ($courses as $course) {
             $client->request('GET', "/lessons/new?id={$course->getId()}");
@@ -282,18 +237,7 @@ class UserTest extends AbstractTest
     public function testLessonEditPageOnAdmin()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $lessons = static::getContainer()->get(LessonRepository::class)->findAll();
         foreach ($lessons as $lesson) {
             $client->request('GET', "/lessons/{$lesson->getId()}/edit");
@@ -304,18 +248,7 @@ class UserTest extends AbstractTest
     public function testLogout()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'usualuser@study.com',
-                'password' => 'user'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->userLogin($client);
         $crawler = $client->followRedirect();
         $link = $crawler->filter('.person-link')->link();
         $crawler = $client->click($link);
@@ -388,7 +321,7 @@ class UserTest extends AbstractTest
         $this->assertResponseOk();
         $this->assertSelectorTextContains(
             '.invalid-feedback',
-            "Пароль должен содержать как один из спец. символов (.!@#$%^&*), ".
+            "Пароль должен содержать как один из спец. символов (.!@#$%^&*), " .
             "прописную и строчные буквы латинского алфавита и цифру."
         );
     }

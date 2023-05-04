@@ -24,10 +24,11 @@ class LessonController extends AbstractController
      * @Route("/new", name="app_lesson_new", methods={"GET", "POST"})
      */
     public function new(
-        Request $request,
+        Request          $request,
         LessonRepository $lessonRepository,
         CourseRepository $courseRepository
-    ): Response {
+    ): Response
+    {
         $lesson = new Lesson();
         $courseId = $request->query->get("id", null);
         $lesson->setCourse($courseRepository->find($courseId));
@@ -59,8 +60,9 @@ class LessonController extends AbstractController
         $transactionsOnLessonCourse = $billingCoursesService->transactions($this->getUser(),
             ['course_code' => $lesson->getCourse()->getCharacterCode(),
                 'skip_expired' => true]);
-        if(count($transactionsOnLessonCourse) === 0) {
-           throw new AccessDeniedException('У вас доступа к этому курсу.');
+        $course = $billingCoursesService->course($lesson->getCourse()->getCharacterCode());
+        if (count($transactionsOnLessonCourse) === 0 && $course["type"] !== "free") {
+            throw new AccessDeniedException('У вас доступа к этому курсу.');
         }
         return $this->render('lesson/show.html.twig', [
             'lesson' => $lesson,
@@ -72,10 +74,11 @@ class LessonController extends AbstractController
      * @Route("/{id}/edit", name="app_lesson_edit", methods={"GET", "POST"})
      */
     public function edit(
-        Request $request,
-        Lesson $lesson,
+        Request          $request,
+        Lesson           $lesson,
         LessonRepository $lessonRepository
-    ): Response {
+    ): Response
+    {
         $form = $this->createForm(LessonType::class, $lesson);
         $form->handleRequest($request);
 
@@ -100,10 +103,11 @@ class LessonController extends AbstractController
      * @Route("/{id}", name="app_lesson_delete", methods={"POST"})
      */
     public function delete(
-        Request $request,
-        Lesson $lesson,
+        Request          $request,
+        Lesson           $lesson,
         LessonRepository $lessonRepository
-    ): Response {
+    ): Response
+    {
         if (
             $this->isCsrfTokenValid(
                 'delete' . $lesson->getId(),

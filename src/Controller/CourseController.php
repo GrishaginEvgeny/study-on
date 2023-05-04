@@ -38,14 +38,28 @@ class CourseController extends AbstractController
      * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/new", name="app_course_new", methods={"GET", "POST"})
      */
-    public function new(Request $request, CourseRepository $courseRepository): Response
+    public function new(Request               $request,
+                        CourseRepository      $courseRepository,
+                        BillingCoursesService $billingCoursesService,
+                        NotifierInterface     $notifier): Response
     {
         $course = new Course();
         $form = $this->createForm(CourseType::class, $course);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $courseRepository->add($course, true);
+            try {
+                $billingCoursesService->addCourse($this->getUser(), [
+                    'type' => array_flip(Course::TYPES_ARRAY)[$form->get('type')->getData()],
+                    'title' => $course->getName(),
+                    'code' => $course->getCharacterCode(),
+                    'price' => $form->get('cost')->getData()
+                ]);
+                $courseRepository->add($course, true);
+            } catch (\Exception $e) {
+                $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
+                $notifier->send($notification);
+            }
 
             return $this->redirectToRoute('app_course_index', [], Response::HTTP_SEE_OTHER);
         }
@@ -74,13 +88,37 @@ class CourseController extends AbstractController
      * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/{id}/edit", name="app_course_edit", methods={"GET", "POST"})
      */
-    public function edit(Request $request, Course $course, CourseRepository $courseRepository): Response
+    public function edit(Request $request,
+                         Course $course,
+                         CourseRepository      $courseRepository,
+                         BillingCoursesService $billingCoursesService,
+                         NotifierInterface     $notifier): Response
     {
+        $previousCode = $course->getCharacterCode();
+        $billingCourse = $billingCoursesService->course($course->getCharacterCode());
         $form = $this->createForm(CourseType::class, $course);
+        $billingCourseType = Course::TYPES_ARRAY[$billingCourse['type']];
+        $form->get('cost')->setData($billingCourse['price']);
+        $form->get('type')->setData($billingCourseType);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $courseRepository->add($course, true);
+            try {
+                $billingCoursesService->editCourse($this->getUser(), $previousCode, [
+                    'type' => array_flip(Course::TYPES_ARRAY)[$form->get('type')->getData()],
+                    'title' => $course->getName(),
+                    'code' => $course->getCharacterCode(),
+                    'price' => $form->get('cost')->getData()
+                ]);
+                $courseRepository->add($course, true);
+            } catch (\Exception $e) {
+                $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
+                $notifier->send($notification);
+                return $this->renderForm('course/edit.html.twig', [
+                    'course' => $course,
+                    'form' => $form,
+                ]);
+            }
 
             return $this->redirectToRoute('app_course_index', [], Response::HTTP_SEE_OTHER);
         }
@@ -109,10 +147,11 @@ class CourseController extends AbstractController
      * @Route("/{id}/buy", name="app_course_buy", methods={"GET"})
      */
     public function buy(
-        Course $course,
+        Course                $course,
         BillingCoursesService $billingCoursesService,
-        NotifierInterface $notifier
-    ) {
+        NotifierInterface     $notifier
+    )
+    {
         $user = $this->getUser();
         try {
             $billingCoursesService->buy($course->getCharacterCode(), $user);

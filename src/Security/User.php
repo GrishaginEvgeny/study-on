@@ -6,15 +6,15 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 class User implements UserInterface
 {
-    private $email;
+    private ?string $email;
 
-    private $roles = [];
+    private array $roles = [];
 
-    private $balance;
+    private ?float $balance;
 
-    private $apiToken;
+    private string $apiToken;
 
-    private $refreshToken;
+    private string $refreshToken;
 
     public function getEmail(): ?string
     {

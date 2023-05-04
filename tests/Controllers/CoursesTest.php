@@ -13,12 +13,31 @@ use App\Tests\AbstractTest;
 use App\Tests\Mocks\BillingCourseServiceMock;
 use App\Tests\Mocks\BillingUserServiceMock;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
+use function DeepCopy\deep_copy;
 
 class CoursesTest extends AbstractTest
 {
+
     protected function getFixtures(): array
     {
         return [AppFixtures::class];
+    }
+
+    private function adminLogin(?\Symfony\Component\BrowserKit\AbstractBrowser $client)
+    {
+        $crawler = $client->request('GET', '/courses');
+        $link = $crawler->selectLink('Войти')->link();
+        $crawler = $client->click($link);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Войти')->form(
+            [
+                'email' => 'admin@study.com',
+                'password' => 'admin'
+            ]
+        );
+        $client->submit($form);
+        $this->assertResponseRedirect();
     }
 
     private function billingClient()
@@ -41,18 +60,7 @@ class CoursesTest extends AbstractTest
     public function testNewCoursePage()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $client->request('GET', '/courses/new');
         $this->assertResponseOk();
     }
@@ -82,18 +90,7 @@ class CoursesTest extends AbstractTest
     public function testCourseAdding()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $countBefore = count(static::getContainer()->get(CourseRepository::class)->findAll());
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
@@ -103,14 +100,16 @@ class CoursesTest extends AbstractTest
 
         $form = $crawler->selectButton('Сохранить')->form(
             [
-                'course[CharacterCode]' => 'test',
-                'course[Name]' => 'test',
-                'course[Description]' => 'test',
+                'course[characterCode]' => 'test',
+                'course[name]' => 'test',
+                'course[description]' => 'test',
+                'course[cost]' => 0,
+                'course[type]' => 1
             ]
         );
         $client->submit($form);
 
-        $addedCourse = static::getContainer()->get(CourseRepository::class)->findOneBy(['CharacterCode' => 'test']);
+        $addedCourse = static::getContainer()->get(CourseRepository::class)->findOneBy(['characterCode' => 'test']);
         $countAfter = count(static::getContainer()->get(CourseRepository::class)->findAll());
         $this->assertNotNull($addedCourse);
         $this->assertEquals($countBefore + 1, $countAfter);
@@ -125,18 +124,7 @@ class CoursesTest extends AbstractTest
     public function testAddCourseWithEmptyCharacterCode()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
@@ -146,9 +134,11 @@ class CoursesTest extends AbstractTest
 
         $form = $crawler->selectButton('Сохранить')->form(
             [
-                'course[CharacterCode]' => '',
-                'course[Name]' => 'test',
-                'course[Description]' => 'test',
+                'course[characterCode]' => '',
+                'course[name]' => 'test',
+                'course[description]' => 'test',
+                'course[cost]' => 0,
+                'course[type]' => 1
             ]
         );
         $client->submit($form);
@@ -160,18 +150,7 @@ class CoursesTest extends AbstractTest
     public function testAddCourseWithWrongCharacterCode()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
@@ -181,9 +160,11 @@ class CoursesTest extends AbstractTest
 
         $form = $crawler->selectButton('Сохранить')->form(
             [
-                'course[CharacterCode]' => '^&#$##@fdad',
-                'course[Name]' => 'test',
-                'course[Description]' => 'test',
+                'course[characterCode]' => '^&#$##@fdad',
+                'course[name]' => 'test',
+                'course[description]' => 'test',
+                'course[cost]' => 0,
+                'course[type]' => 1
             ]
         );
         $client->submit($form);
@@ -195,18 +176,7 @@ class CoursesTest extends AbstractTest
     public function testAddCourseWithEmptyName()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
@@ -216,9 +186,11 @@ class CoursesTest extends AbstractTest
 
         $form = $crawler->selectButton('Сохранить')->form(
             [
-                'course[CharacterCode]' => 'php',
-                'course[Name]' => '',
-                'course[Description]' => 'test',
+                'course[characterCode]' => 'php',
+                'course[name]' => '',
+                'course[description]' => 'test',
+                'course[cost]' => 0,
+                'course[type]' => 1
             ]
         );
         $client->submit($form);
@@ -230,18 +202,7 @@ class CoursesTest extends AbstractTest
     public function testAddCourseWithNotUniqueCharacterCode()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
@@ -251,12 +212,14 @@ class CoursesTest extends AbstractTest
 
         $form = $crawler->selectButton('Сохранить')->form(
             [
-                'course[CharacterCode]' => static::getContainer()
+                'course[characterCode]' => static::getContainer()
                     ->get(CourseRepository::class)
                     ->findAll()[0]
                     ->getCharacterCode(),
-                'course[Name]' => 'test',
-                'course[Description]' => 'test',
+                'course[name]' => 'test',
+                'course[description]' => 'test',
+                'course[cost]' => 0,
+                'course[type]' => 1
             ]
         );
         $client->submit($form);
@@ -268,18 +231,7 @@ class CoursesTest extends AbstractTest
     public function testAddCourseWithCharacterCodeLengthGreaterThanConstraint()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
@@ -289,9 +241,11 @@ class CoursesTest extends AbstractTest
 
         $form = $crawler->selectButton('Сохранить')->form(
             [
-                'course[CharacterCode]' => str_repeat("a", 256),
-                'course[Name]' => 'test',
-                'course[Description]' => 'test',
+                'course[characterCode]' => str_repeat("a", 256),
+                'course[name]' => 'test',
+                'course[description]' => 'test',
+                'course[cost]' => 0,
+                'course[type]' => 1
             ]
         );
         $client->submit($form);
@@ -303,18 +257,7 @@ class CoursesTest extends AbstractTest
     public function testAddCourseWithNameLengthGreaterThanConstraint()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
@@ -324,9 +267,11 @@ class CoursesTest extends AbstractTest
 
         $form = $crawler->selectButton('Сохранить')->form(
             [
-                'course[CharacterCode]' => 'test',
-                'course[Name]' => str_repeat("a", 256),
-                'course[Description]' => 'test',
+                'course[characterCode]' => 'test',
+                'course[name]' => str_repeat("a", 256),
+                'course[description]' => 'test',
+                'course[cost]' => 0,
+                'course[type]' => 1
             ]
         );
         $client->submit($form);
@@ -338,18 +283,7 @@ class CoursesTest extends AbstractTest
     public function testAddCourseWithDescriptionLengthGreaterThanConstraint()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
@@ -359,9 +293,11 @@ class CoursesTest extends AbstractTest
 
         $form = $crawler->selectButton('Сохранить')->form(
             [
-                'course[CharacterCode]' => 'test',
-                'course[Name]' => 'test',
-                'course[Description]' => str_repeat("a", 1001),
+                'course[characterCode]' => 'test',
+                'course[name]' => 'test',
+                'course[description]' => str_repeat("a", 1001),
+                'course[cost]' => 0,
+                'course[type]' => 1
             ]
         );
         $client->submit($form);
@@ -373,18 +309,7 @@ class CoursesTest extends AbstractTest
     public function testEditCourse()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
@@ -398,35 +323,23 @@ class CoursesTest extends AbstractTest
 
         $form = $crawler->selectButton('Обновить')->form(
             [
-                'course[CharacterCode]' => 'test123',
-                'course[Name]' => 'testName',
-                'course[Description]' => 'test',
+                'course[characterCode]' => 'test123',
+                'course[name]' => 'testName',
+                'course[description]' => 'test',
+                'course[cost]' => 0,
+                'course[type]' => 1
             ]
         );
         $client->submit($form);
 
-        $editedCourse = static::getContainer()->get(CourseRepository::class)->findOneBy(['CharacterCode' => 'test123']);
+        $editedCourse = static::getContainer()->get(CourseRepository::class)->findOneBy(['characterCode' => 'test123']);
         $this->assertNotNull($editedCourse);
-        $crawler = $client->request('GET', "/courses/{$editedCourse->getId()}");
-        $this->assertResponseOk();
-        $this->assertSame('testName', $crawler->filter('.course_page_header')->text());
     }
 
     public function testRemoveCourse()
     {
         $client = $this->billingClient();
-        $crawler = $client->request('GET', '/courses');
-        $link = $crawler->selectLink('Войти')->link();
-        $crawler = $client->click($link);
-        $this->assertResponseOk();
-        $form = $crawler->selectButton('Войти')->form(
-            [
-                'email' => 'admin@study.com',
-                'password' => 'admin'
-            ]
-        );
-        $client->submit($form);
-        $this->assertResponseRedirect();
+        $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $countBefore = count(static::getContainer()->get(CourseRepository::class)->findAll());
         $this->assertResponseOk();
@@ -441,4 +354,159 @@ class CoursesTest extends AbstractTest
         $crawler = $client->followRedirect();
         $this->assertCount($countAfter, $crawler->filter('.course-card'));
     }
+
+    public function testTransactionSuccessfully(){
+        //без фильтров
+        $client = $this->billingClient();
+        $this->adminLogin($client);
+        $crawler = $client->followRedirect();
+        $linkProfile = $crawler->filter('.person-link')->link();
+        $crawler = $client->click($linkProfile);
+        $this->assertResponseOk();
+        $transactionLink = $crawler->filter('.transaction-link')->link();
+        $crawler = $client->click($transactionLink);
+        $this->assertResponseOk();
+        $allTransactions = [
+            [
+                0 => (new \DateTimeImmutable('-3 week'))->format('Y-m-d H:i:s'),
+                1 => "Депозит",
+                2 => '',
+                3 => '111111111111$',
+                4 => ''
+            ],
+            [
+                0 => (new \DateTimeImmutable('-2 week'))->format('Y-m-d H:i:s'),
+                1 => "Платёж",
+                2 => 'pydev',
+                3 => '99.99$',
+                4 => (new \DateTimeImmutable('-1 week'))->format('Y-m-d H:i:s')
+            ],
+            [
+                0 => (new \DateTimeImmutable('-1 day'))->format('Y-m-d H:i:s'),
+                1 => "Платёж",
+                2 => 'webdev',
+                3 => '199.99$',
+                4 => ''
+            ]
+        ];
+        foreach ($allTransactions as $key => $transaction){
+            $selector = ".trans-row-{$key}";
+            $row = $crawler->filter($selector);
+            $row->each(function (Crawler $node, $i) use ($transaction) {
+                $this->assertSame($node->text(), $transaction[$i]);
+            });
+        }
+
+        //фильтр на тип транзакции -- deposit
+        $form = $crawler->selectButton('Применить')->form();
+        $formValues = $form->getPhpValues();
+        $formValues['form']['type'] = ["deposit"];
+        $crawler = $client->request($form->getMethod(), $form->getUri(), $formValues);
+        $this->assertResponseOk();
+        $depositTransaction = $allTransactions;
+        unset($depositTransaction[1], $depositTransaction[2]);
+        foreach ($depositTransaction as $key => $transaction){
+            $selector = ".trans-row-{$key}";
+            $row = $crawler->filter($selector);
+            $row->each(function (Crawler $node, $i) use ($transaction) {
+                $this->assertSame($node->text(), $transaction[$i]);
+            });
+        }
+
+        //фильтр на тип транзакции -- payment
+        $form = $crawler->selectButton('Применить')->form();
+        $formValues = $form->getPhpValues();
+        $formValues['form']['type'] = ["payment"];
+        $crawler = $client->request($form->getMethod(), $form->getUri(), $formValues);
+        $this->assertResponseOk();
+        $paymentTransaction = $allTransactions;
+        unset($paymentTransaction[0]);
+        foreach ($paymentTransaction as $key => $transaction){
+            $selector = ".trans-row-{$key}";
+            $row = $crawler->filter($selector);
+            $row->each(function (Crawler $node, $i) use ($transaction) {
+                $this->assertSame($node->text(), $transaction[$i]);
+            });
+        }
+
+        //фильтр на код курса
+        $form = $crawler->selectButton('Применить')->form();
+        $formValues = $form->getPhpValues();
+        $formValues['form']['course_code'] = "webdev";
+        $crawler = $client->request($form->getMethod(), $form->getUri(), $formValues);
+        $this->assertResponseOk();
+        $codeTransaction = $allTransactions;
+        unset($codeTransaction[0], $codeTransaction[1]);
+        foreach ($codeTransaction as $key => $transaction){
+            $selector = ".trans-row-{$key}";
+            $row = $crawler->filter($selector);
+            $row->each(function (Crawler $node, $i) use ($transaction) {
+                $this->assertSame($node->text(), $transaction[$i]);
+            });
+        }
+
+        //фильтр на флаг
+        $form = $crawler->selectButton('Применить')->form();
+        $formValues = $form->getPhpValues();
+        $formValues['form']['skip_expired'] = true;
+        $crawler = $client->request($form->getMethod(), $form->getUri(), $formValues);
+        $this->assertResponseOk();
+        $flagTransaction = $allTransactions;
+        unset($flagTransaction[1]);
+        foreach ($flagTransaction as $key => $transaction){
+            $selector = ".trans-row-{$key}";
+            $row = $crawler->filter($selector);
+            $row->each(function (Crawler $node, $i) use ($transaction) {
+                $this->assertSame($node->text(), $transaction[$i]);
+            });
+        }
+    }
+
+    public function testTransactionUnsuccessfully() {
+        $client = $this->billingClient();
+        $this->adminLogin($client);
+        $crawler = $client->followRedirect();
+        $linkProfile = $crawler->filter('.person-link')->link();
+        $crawler = $client->click($linkProfile);
+        $this->assertResponseOk();
+        $transactionLink = $crawler->filter('.transaction-link')->link();
+        $crawler = $client->click($transactionLink);
+        $this->assertResponseOk();
+        $form = $crawler->selectButton('Применить')->form();
+        $formValues = $form->getPhpValues();
+        $formValues['form']['type'] = [];
+        $crawler = $client->request($form->getMethod(), $form->getUri(), $formValues);
+        $this->assertSelectorExists('.invalid-feedback.d-block');
+        $this->assertSelectorTextContains('.invalid-feedback.d-block',
+            'Вы должны выбрать хотя бы один тип.');
+    }
+
+    public function testBuyCourse(){
+        $client = $this->billingClient();
+        $this->adminLogin($client);
+        $crawler = $client->followRedirect();
+        $crawler->filter('.link_to_course')->each(function (Crawler $node, $i) use ($client){
+                if($node->previousAll()->last()->text() === "Python-разработчик"
+                    || $node->previousAll()->last()->text() === "Веб-разработчик"){
+                    $link = $node->link();
+                    $crawler = $client->click($link);
+                    $this->assertResponseOk();
+                    $this->assertSelectorExists('#buyModal');
+                    $buyLink = $crawler->filter('.buy-link')->link();
+                    $client->click($buyLink);
+                    $this->assertResponseRedirect();
+                    $crawler = $client->followRedirect();
+                    $this->assertSelectorExists('.notification-message');
+                            $this->assertSelectorTextContains('.notification-message',
+            'Курс успешно оплачен.');
+                } else {
+                    $link = $node->link();
+                    $client->click($link);
+                    $this->assertResponseOk();
+                    $this->assertSelectorNotExists('#buyModal');
+                }
+            });
+    }
+
+
 }

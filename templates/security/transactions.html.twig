@@ -46,11 +46,11 @@
             {% for key, transaction in transactions %}
                 <tr>
                     <th scope="row">{{ key + 1 }}</th>
-                    <td>{{ transaction.created_at|date('Y-m-d H:i:s') }}</td>
-                    <td>{{ transaction.type == 'payment' ? 'Платёж' : 'Депозит' }}</td>
-                    <td>{{ transaction.course_code }}</td>
-                    <td>{{ transaction.amount }}$</td>
-                    <td>{{ transaction.expired_at is not null ? transaction.expired_at|date('Y-m-d H:i:s') : '' }}</td>
+                    <td class="trans-row-{{ key }}">{{ transaction.created_at|date('Y-m-d H:i:s') }}</td>
+                    <td class="trans-row-{{ key }}">{{ transaction.type == 'payment' ? 'Платёж' : 'Депозит' }}</td>
+                    <td class="trans-row-{{ key }}">{{ transaction.course_code }}</td>
+                    <td class="trans-row-{{ key }}">{{ transaction.amount }}$</td>
+                    <td class="trans-row-{{ key }}">{{ transaction.expired_at is not null ? transaction.expired_at|date('Y-m-d H:i:s') : '' }}</td>
                 </tr>
             {% endfor %}
         </tbody>

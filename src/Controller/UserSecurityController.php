@@ -18,6 +18,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Security\Http\Authentication\UserAuthenticatorInterface;
+use Symfony\Component\Validator\Constraints\Blank;
+use Symfony\Component\Validator\Constraints\NotBlank;
 
 class UserSecurityController extends AbstractController
 {
@@ -67,9 +69,10 @@ class UserSecurityController extends AbstractController
      * @throws \Exception
      */
     public function transactions(
-        Request $request,
+        Request               $request,
         BillingCoursesService $billingCoursesService
-    ): Response {
+    ): Response
+    {
         $user = $this->getUser();
         $form = $this->createFormBuilder()
             ->add(
@@ -87,32 +90,22 @@ class UserSecurityController extends AbstractController
                     'Платежи' => 'payment',
                     'Депозиты' => 'deposit'
                 ],
-                'choice_attr' => function () {
-                        return ['checked' => true];
-                },
                 'expanded' => 'true',
                 'multiple' => 'true',
+                'data' => ['payment','deposit'],
                 'label' => 'Тип транзакции',
+                'preferred_choices' => ['payment', 'deposit'],
+                'constraints' => [
+                    new NotBlank(['message' => 'Вы должны выбрать хотя бы один тип.'])
+                ]
             ])
             ->getForm();
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $formData = $form->getData();
             $type = null;
-            try {
-                if ($formData['type'] === []) {
-                    throw new \Exception('Вы должны выбрать хотя бы один тип.');
-                }
-            } catch (\Exception $e) {
-                $form->get('type')->addError(new FormError($e->getMessage()));
-                $transactions = $billingCoursesService->transactions($user);
-                return $this->render('security/transactions.html.twig', [
-                    'transactions' => $transactions,
-                    'form' => $form->createView()
-                ]);
-            }
-            if (!(in_array('payment', $formData['type']) && in_array('deposit', $formData['type']))) {
-                $type = in_array('payment', $formData['type']) ? 'payment' : 'deposit';
+            if(count($formData['type']) === 1) {
+                $type = in_array('payment', $formData['type'], true) ? 'payment' : 'deposit';
             }
             $params = [
                 'type' => $type,
@@ -137,11 +130,12 @@ class UserSecurityController extends AbstractController
      * @throws \Exception
      */
     public function register(
-        Request $request,
+        Request                    $request,
         UserAuthenticatorInterface $authenticator,
-        BillingAuthenticator $formAuthenticator,
-        BillingUserService $billingService
-    ): Response {
+        BillingAuthenticator       $formAuthenticator,
+        BillingUserService         $billingService
+    ): Response
+    {
         if ($this->getUser()) {
             return $this->redirectToRoute('app_profile');
         }
@@ -164,20 +158,20 @@ class UserSecurityController extends AbstractController
                     $request
                 );
             } catch (\Exception $e) {
-                    $errors = json_decode($e->getMessage(), true, 512, JSON_THROW_ON_ERROR);
+                $errors = json_decode($e->getMessage(), true, 512, JSON_THROW_ON_ERROR);
                 foreach ($errors as $key => $error) {
                     $form->get($key)->addError(new FormError($error));
                     if ($key === 'password') {
                         $form->get($key)->get('first')->addError(new FormError($error));
                     }
                 }
-                    return $this->render('security/register.html.twig', [
-                        'form' => $form->createView(),
-                    ]);
+                return $this->render('security/register.html.twig', [
+                    'form' => $form->createView(),
+                ]);
             }
         }
-            return $this->render('security/register.html.twig', [
-                'form' => $form->createView(),
-            ]);
+        return $this->render('security/register.html.twig', [
+            'form' => $form->createView(),
+        ]);
     }
 }

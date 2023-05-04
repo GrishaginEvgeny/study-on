@@ -19,7 +19,7 @@ class CourseToIdTransformer implements DataTransformerInterface
     /**
      * Преобразует объект (проблему) в строку (цифру).
      *
-     * @param  Course|null $value
+     * @param Course|null $value
      */
     public function transform($value): string
     {
@@ -34,7 +34,7 @@ class CourseToIdTransformer implements DataTransformerInterface
     /**
      * Преобразует строку (число) в объект (проблему).
      *
-     * @param  string $value
+     * @param string $value
      * @throws TransformationFailedException
      */
     public function reverseTransform($value): ?Course
@@ -45,8 +45,7 @@ class CourseToIdTransformer implements DataTransformerInterface
 
         $course = $this->entityManager
             ->getRepository(Course::class)
-            ->find($value)
-        ;
+            ->find($value);
 
         if (null === $course) {
             throw new TransformationFailedException('Такого курса не существует.');
