@@ -3,34 +3,72 @@
 namespace App\Controller;
 
 use App\Entity\Course;
+use App\Exception\BillingNotFoundException;
+use App\Exception\BillingValidationException;
 use App\Form\CourseType;
 use App\Repository\CourseRepository;
 use App\Services\BillingCoursesService;
-use JMS\Serializer\EventDispatcher\EventDispatcher;
+use App\Services\BillingUserService;
+use App\Util\OperationsForArraysWithArraysByKey;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Notifier\Notification\Notification;
 use Symfony\Component\Notifier\NotifierInterface;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Http\Event\LogoutEvent;
 
 /**
  * @Route("/courses")
  */
 class CourseController extends AbstractController
 {
+    private CourseRepository $courseRepository;
+
+    private BillingCoursesService $billingCoursesService;
+
+    private NotifierInterface $notifier;
+
+    private BillingUserService $billingUserService;
+
+    private const SUCCESSFULLY_PAID_TEXT = 'Курс успешно оплачен.';
+
+    public function __construct(
+        CourseRepository $courseRepository,
+        BillingCoursesService $billingCoursesService,
+        NotifierInterface $notifier,
+        BillingUserService $billingUserService
+    ) {
+        $this->courseRepository = $courseRepository;
+        $this->billingCoursesService = $billingCoursesService;
+        $this->notifier = $notifier;
+        $this->billingUserService = $billingUserService;
+    }
+
     /**
      * @Route("", name="app_course_index", methods={"GET"})
      */
-    public function index(CourseRepository $courseRepository): Response
+    public function index(): Response
     {
+        $purchasedCourses = [];
+        if ($this->getUser()) {
+            $transactions = $this->billingCoursesService
+                ->transactions($this->getUser(), [
+                    'type' => 'payment',
+                    'skip_expired' => true
+                ]);
+
+            $courses = $this->billingCoursesService->courses();
+            $leftJoinOnTransactionAndCourses = OperationsForArraysWithArraysByKey::leftJoin(
+                $transactions,
+                $courses,
+                'course_code'
+            );
+            $purchasedCourses = array_column($leftJoinOnTransactionAndCourses, 'course_code');
+        }
         return $this->render('course/index.html.twig', [
-            'courses' => $courseRepository->findAll(),
+            'courses' => $this->courseRepository->findAll(),
+            'purchasedCourses' => $purchasedCourses
         ]);
     }
 
@@ -38,10 +76,7 @@ class CourseController extends AbstractController
      * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/new", name="app_course_new", methods={"GET", "POST"})
      */
-    public function new(Request               $request,
-                        CourseRepository      $courseRepository,
-                        BillingCoursesService $billingCoursesService,
-                        NotifierInterface     $notifier): Response
+    public function new(Request $request): Response
     {
         $course = new Course();
         $form = $this->createForm(CourseType::class, $course);
@@ -49,19 +84,26 @@ class CourseController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $billingCoursesService->addCourse($this->getUser(), [
+                $this->billingCoursesService->addCourse($this->getUser(), [
                     'type' => array_flip(Course::TYPES_ARRAY)[$form->get('type')->getData()],
                     'title' => $course->getName(),
                     'code' => $course->getCharacterCode(),
                     'price' => $form->get('cost')->getData()
                 ]);
-                $courseRepository->add($course, true);
-            } catch (\Exception $e) {
-                $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
-                $notifier->send($notification);
-            }
+                $this->courseRepository->add($course, true);
+                return $this->redirectToRoute('app_course_index', [], Response::HTTP_SEE_OTHER);
+            } catch (BillingValidationException | BillingNotFoundException $e) {
+                $notification = null;
+                if ($e instanceof BillingValidationException) {
+                    $notification = (new Notification(implode("\n", $e->getErrors()), ['browser']))->emoji("👎");
+                }
 
-            return $this->redirectToRoute('app_course_index', [], Response::HTTP_SEE_OTHER);
+                if ($e instanceof BillingNotFoundException) {
+                    $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
+                }
+
+                $this->notifier->send($notification);
+            }
         }
 
         return $this->renderForm('course/new.html.twig', [
@@ -73,14 +115,30 @@ class CourseController extends AbstractController
     /**
      * @Route("/{id}", name="app_course_show", methods={"GET"})
      */
-    public function show(Course $course, BillingCoursesService $billingCoursesService): Response
+    public function show(Course $course): Response
     {
-        $billingCourse = $billingCoursesService->course($course->getCharacterCode());
+        $billingCourse = $this->billingCoursesService->course($course->getCharacterCode());
+        $authedUser = $this->getUser();
+        $token = !is_null($authedUser) ? $authedUser->getApiToken() : null;
+        $refreshToken = !is_null($authedUser) ? $authedUser->getRefreshToken() : null;
+        $isPurchased = false;
+        $balance = null;
+        if (!is_null($authedUser)) {
+            $userInfo = $this->billingUserService->currentUser($token, $refreshToken);
+            $countOfTransactionOnUser = count($this->billingCoursesService->transactions($authedUser, [
+                'type' => 'payment',
+                'course_code' => $course->getCharacterCode(),
+                'skip_expired' => true
+            ]));
+            $isPurchased = $countOfTransactionOnUser === 1;
+            $balance = $userInfo['balance'];
+        }
         return $this->render('course/show.html.twig', [
             'course' => $course,
             'type' => $billingCourse['type'],
             'price' => $billingCourse['price'],
-            'balance' => $this->getUser() ? $this->getUser()->getBalance() : -1
+            'balance' => $balance,
+            'isPurchased' => $isPurchased
         ]);
     }
 
@@ -88,14 +146,10 @@ class CourseController extends AbstractController
      * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/{id}/edit", name="app_course_edit", methods={"GET", "POST"})
      */
-    public function edit(Request $request,
-                         Course $course,
-                         CourseRepository      $courseRepository,
-                         BillingCoursesService $billingCoursesService,
-                         NotifierInterface     $notifier): Response
+    public function edit(Request $request, Course $course): Response
     {
         $previousCode = $course->getCharacterCode();
-        $billingCourse = $billingCoursesService->course($course->getCharacterCode());
+        $billingCourse = $this->billingCoursesService->course($course->getCharacterCode());
         $form = $this->createForm(CourseType::class, $course);
         $billingCourseType = Course::TYPES_ARRAY[$billingCourse['type']];
         $form->get('cost')->setData($billingCourse['price']);
@@ -104,23 +158,26 @@ class CourseController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $billingCoursesService->editCourse($this->getUser(), $previousCode, [
+                $this->billingCoursesService->editCourse($this->getUser(), $previousCode, [
                     'type' => array_flip(Course::TYPES_ARRAY)[$form->get('type')->getData()],
                     'title' => $course->getName(),
                     'code' => $course->getCharacterCode(),
                     'price' => $form->get('cost')->getData()
                 ]);
-                $courseRepository->add($course, true);
-            } catch (\Exception $e) {
-                $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
-                $notifier->send($notification);
-                return $this->renderForm('course/edit.html.twig', [
-                    'course' => $course,
-                    'form' => $form,
-                ]);
-            }
+                $this->courseRepository->add($course, true);
+                return $this->redirectToRoute('app_course_index', [], Response::HTTP_SEE_OTHER);
+            } catch (BillingValidationException | BillingNotFoundException $e) {
+                $notification = null;
+                if ($e instanceof BillingValidationException) {
+                    $notification = (new Notification(implode("\n", $e->getErrors()), ['browser']))->emoji("👎");
+                }
 
-            return $this->redirectToRoute('app_course_index', [], Response::HTTP_SEE_OTHER);
+                if ($e instanceof BillingNotFoundException) {
+                    $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
+                }
+
+                $this->notifier->send($notification);
+            }
         }
 
         return $this->renderForm('course/edit.html.twig', [
@@ -133,10 +190,10 @@ class CourseController extends AbstractController
      * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/{id}", name="app_course_delete", methods={"POST"})
      */
-    public function delete(Request $request, Course $course, CourseRepository $courseRepository): Response
+    public function delete(Request $request, Course $course): Response
     {
         if ($this->isCsrfTokenValid('delete' . $course->getId(), $request->request->get('_token'))) {
-            $courseRepository->remove($course, true);
+            $this->courseRepository->remove($course, true);
         }
 
         return $this->redirectToRoute('app_course_index', [], Response::HTTP_SEE_OTHER);
@@ -146,21 +203,24 @@ class CourseController extends AbstractController
      * @IsGranted("ROLE_USER")
      * @Route("/{id}/buy", name="app_course_buy", methods={"GET"})
      */
-    public function buy(
-        Course                $course,
-        BillingCoursesService $billingCoursesService,
-        NotifierInterface     $notifier
-    )
+    public function buy(Course $course)
     {
         $user = $this->getUser();
         try {
-            $billingCoursesService->buy($course->getCharacterCode(), $user);
-            $notification = (new Notification('Курс успешно оплачен.', ['browser']))->emoji("👍");
-            $notifier->send($notification);
-        } catch (\Exception $e) {
-            $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
-            $notifier->send($notification);
-            return $this->redirectToRoute('app_course_show', ['id' => $course->getId()], 301);
+            $this->billingCoursesService->buy($course->getCharacterCode(), $user);
+            $notification = (new Notification(self::SUCCESSFULLY_PAID_TEXT, ['browser']))->emoji("👍");
+            $this->notifier->send($notification);
+        } catch (BillingValidationException | BillingNotFoundException $e) {
+            $notification = null;
+            if ($e instanceof BillingValidationException) {
+                $notification = (new Notification(implode("\n", $e->getErrors()), ['browser']))->emoji("👎");
+            }
+
+            if ($e instanceof BillingNotFoundException) {
+                $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
+            }
+
+            $this->notifier->send($notification);
         }
         return $this->redirectToRoute('app_course_show', ['id' => $course->getId()], 301);
     }

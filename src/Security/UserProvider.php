@@ -12,6 +12,8 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
 {
+    private const TIME_BEFORE_EXPIRED = "15 seconds";
+
     private BillingUserService $billingService;
 
     public function __construct(BillingUserService $billingService)
@@ -61,17 +63,13 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
             throw new UnsupportedUserException(sprintf('Invalid user class "%s".', get_class($user)));
         }
         $decodedPayload = $user->getJWTPayload();
-        $interval = \DateInterval::createFromDateString('15 second');
+        $interval = \DateInterval::createFromDateString(self::TIME_BEFORE_EXPIRED);
         $exp = (new \DateTime())->setTimestamp($decodedPayload['exp']);
         $realTimeMoment = (new \DateTime())->add($interval);
         if ($realTimeMoment >= $exp) {
-            try {
-                $newTokenUser = $this->billingService->refresh($user->getRefreshToken());
-                $user->setApiToken($newTokenUser->getApiToken());
-                $user->setRefreshToken($newTokenUser->getRefreshToken());
-            } catch (\Exception $e) {
-                throw new \Exception($e->getMessage());
-            }
+            $newTokens = $this->billingService->refresh($user->getRefreshToken());
+            $user->setApiToken($newTokens['token']);
+            $user->setRefreshToken($newTokens['refresh_token']);
         }
 
         return $user;

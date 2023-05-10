@@ -49,7 +49,14 @@ class BillingAuthenticator extends AbstractLoginFormAuthenticator
 
         $loadUser = function ($userCredentials) {
             try {
-                return $this->billingService->auth($userCredentials);
+                $userInfo = $this->billingService->auth($userCredentials);
+                $user = new User();
+                $user->setEmail($userInfo['username']);
+                $user->setBalance($userInfo['balance']);
+                $user->setRoles($userInfo['roles']);
+                $user->setApiToken($userInfo['token']);
+                $user->setRefreshToken($userInfo['refreshToken']);
+                return $user;
             } catch (BillingUnavailableException | \Exception $e) {
                 throw new CustomUserMessageAuthenticationException($e->getMessage());
             }

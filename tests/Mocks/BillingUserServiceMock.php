@@ -2,13 +2,20 @@
 
 namespace App\Tests\Mocks;
 
+use App\Exception\BillingValidationException;
 use App\Security\User;
 use App\Services\BillingUserService;
-use Symfony\Component\HttpFoundation\Response;
+use App\Services\BillingUserWrongCredentialsException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
 
 class BillingUserServiceMock extends BillingUserService
 {
-    public function auth(string $jsonedCredentials): User
+    /**
+     * @throws \App\Services\BillingUserWrongCredentialsException
+     * @throws \JsonException
+     */
+    public function auth(string $jsonedCredentials): array
     {
         $arrayedCredentials = json_decode($jsonedCredentials, true);
         if (
@@ -29,72 +36,41 @@ class BillingUserServiceMock extends BillingUserService
             ]));
             $token = "filler.{$token}";
             return $this->currentUser($token, $refreshToken);
-        } else {
-            throw new \Exception(json_encode(['code' => 400,'message' => 'Invalid Credentials.']));
         }
+
+        throw new BadRequestHttpException('Invalid credentials.');
     }
 
-    public function currentUser(string $token, string $refreshToken): User
+    /**
+     * @throws \JsonException
+     */
+    public function currentUser(string $token, string $refreshToken): array
     {
         $arrayedCredentials = json_decode(base64_decode($refreshToken, true), true, 512, JSON_THROW_ON_ERROR);
-        try {
-            $user = new User();
-            $user->setEmail($arrayedCredentials['username'])
-                ->setApiToken($token)
-                ->setRoles($arrayedCredentials['roles'])
-                ->setBalance($arrayedCredentials['username'] === 'admin@study.com' ? 111111111111 : 1000)
-                ->setRefreshToken($refreshToken);
-            return $user;
-        } catch (\Exception $e) {
-            throw new \Exception(json_encode(['code' => 400,'message' => 'Invalid JWT Token.']));
-        }
+        return array_merge($arrayedCredentials, ['token' => $token, 'refreshToken' => $refreshToken]);
     }
 
-    public function register(string $jsonedCredentials): User
+    public function register(string $jsonedCredentials): array
     {
         $arrayedCredentials = json_decode($jsonedCredentials, true);
-        $passExp = "/(?=.*[0-9])(?=.*[.!@#$%^&*])(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z!@#$%^&*.]+$/";
-        if (!preg_match($passExp, $arrayedCredentials['password'])) {
-            throw new \Exception(json_encode([
-                    "password" => 'Пароль должен содержать как один из спец. символов (.!@#$%^&*), 
-                    прописную и строчные буквы латинского алфавита и цифру.'
-                ]));
-        }
-        if (strlen($arrayedCredentials['password']) < 6) {
-            throw new \Exception(json_encode([
-                    "password" => 'Пароль должен содержать минимум 6 символов.'
-                ]));
-        }
         if (
             $arrayedCredentials['username'] === 'admin@study.com'
             || $arrayedCredentials['username'] === 'usualuser@study.com'
         ) {
-            throw new \Exception(json_encode([
-                    "password" => 'Пользователь с таким E-mail уже зарегистрирован.'
-                ]));
-        }
-        if (!filter_var($arrayedCredentials['username'], FILTER_VALIDATE_EMAIL)) {
-            throw new \Exception(json_encode([
-                    "password" => 'Поле e-mail содержит некорректные данные.'
-                ]));
-        }
-        if (strlen($arrayedCredentials['username']) === 0) {
-            throw new \Exception(json_encode([
-                    "username" => 'Поле e-mail не может быт пустым.'
-                ]));
+            throw new BillingValidationException(null, 406, null, ["Пользователь с таким E-mail уже зарегистрирован."]);
         }
         $refreshToken = base64_encode(json_encode([
             'username' => $arrayedCredentials['username'],
             'password' => $arrayedCredentials['password'],
             'roles' => ['ROLE_USER'],
             'balance' => 1000
-        ]));
+        ], JSON_THROW_ON_ERROR));
         $token = base64_encode(json_encode([
             'username' => $arrayedCredentials['username'],
             'iat' => (new \DateTime('now'))->getTimestamp(),
             'exp' => (new \DateTime('+ 1 hour'))->getTimestamp(),
             'roles' => ['ROLE_USER'],
-        ]));
+        ], JSON_THROW_ON_ERROR));
         $token = "filler.{$token}";
         return $this->currentUser($token, $refreshToken);
     }
@@ -102,23 +78,22 @@ class BillingUserServiceMock extends BillingUserService
     /**
      * @throws \JsonException
      */
-    public function refresh(string $refreshToken): User
+    public function refresh(string $refreshToken): array
     {
-        $arrayedPayload = json_decode(base64_decode($refreshToken, true),
-            true, 512, JSON_THROW_ON_ERROR);
+        $arrayedPayload = json_decode(
+            base64_decode($refreshToken, true),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
         $user = new User();
         $token = base64_encode(json_encode([
             'username' => $arrayedPayload['username'],
             'iat' => (new \DateTime('now'))->getTimestamp(),
             'exp' => (new \DateTime('+ 1 hour'))->getTimestamp(),
             'roles' => ['ROLE_USER'],
-        ]));
+        ], JSON_THROW_ON_ERROR));
         $token = "filler.{$token}";
-        $user->setEmail($arrayedPayload['username'])
-            ->setApiToken($token)
-            ->setRoles($arrayedPayload['username'] === 'admin@study.com' ? ['ROLE_SUPER_ADMIN'] : ['ROLE_USER'])
-            ->setBalance($arrayedPayload['username'] === 'admin@study.com' ? 111111111111 : 1000)
-            ->setRefreshToken($refreshToken);
-        return $user;
+        return ['token' => $token, 'refreshToken' => $refreshToken];
     }
 }

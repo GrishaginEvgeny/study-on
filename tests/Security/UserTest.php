@@ -270,9 +270,9 @@ class UserTest extends AbstractTest
         $this->assertResponseOk();
         $form = $crawler->selectButton('Зарегистрироваться')->form(
             [
-                'form[username]' => 'test534124142124@test.com',
-                'form[password][first]' => 'QWEqwe1.',
-                'form[password][second]' => 'QWEqwe1.',
+                'register[username]' => 'test534124142124@test.com',
+                'register[password][first]' => 'QWEqwe1.',
+                'register[password][second]' => 'QWEqwe1.',
             ]
         );
         $client->submit($form);
@@ -290,9 +290,9 @@ class UserTest extends AbstractTest
         $this->assertResponseOk();
         $form = $crawler->selectButton('Зарегистрироваться')->form(
             [
-                'form[username]' => 'test534124142124@test.com',
-                'form[password][first]' => 'Aa1.',
-                'form[password][second]' => 'Aa1.',
+                'register[username]' => 'test534124142124@test.com',
+                'register[password][first]' => 'Aa1.',
+                'register[password][second]' => 'Aa1.',
             ]
         );
         $client->submit($form);
@@ -312,9 +312,9 @@ class UserTest extends AbstractTest
         $this->assertResponseOk();
         $form = $crawler->selectButton('Зарегистрироваться')->form(
             [
-                'form[username]' => 'test534124142124@test.com',
-                'form[password][first]' => 'aaaaaaaaaa',
-                'form[password][second]' => 'aaaaaaaaaa',
+                'register[username]' => 'test534124142124@test.com',
+                'register[password][first]' => 'aaaaaaaaaa',
+                'register[password][second]' => 'aaaaaaaaaa',
             ]
         );
         $client->submit($form);
@@ -335,16 +335,16 @@ class UserTest extends AbstractTest
         $this->assertResponseOk();
         $form = $crawler->selectButton('Зарегистрироваться')->form(
             [
-                'form[username]' => '',
-                'form[password][first]' => 'QWEqwe1.',
-                'form[password][second]' => 'QWEqwe1.',
+                'register[username]' => '',
+                'register[password][first]' => 'QWEqwe1.',
+                'register[password][second]' => 'QWEqwe1.',
             ]
         );
         $client->submit($form);
         $this->assertResponseOk();
         $this->assertSelectorTextContains(
             '.invalid-feedback',
-            'Поле e-mail содержит некорректные данные.'
+            "Поле e-mail не может быт пустым."
         );
     }
 
@@ -357,15 +357,15 @@ class UserTest extends AbstractTest
         $this->assertResponseOk();
         $form = $crawler->selectButton('Зарегистрироваться')->form(
             [
-                'form[username]' => 'admin@study.com',
-                'form[password][first]' => 'QWEqwe1.',
-                'form[password][second]' => 'QWEqwe1.',
+                'register[username]' => 'admin@study.com',
+                'register[password][first]' => 'QWEqwe1.',
+                'register[password][second]' => 'QWEqwe1.',
             ]
         );
         $client->submit($form);
         $this->assertResponseOk();
         $this->assertSelectorTextContains(
-            '.invalid-feedback',
+            '.alert',
             'Пользователь с таким E-mail уже зарегистрирован.'
         );
     }

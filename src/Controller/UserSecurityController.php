@@ -2,38 +2,60 @@
 
 namespace App\Controller;
 
+use App\Exception\BillingNotFoundException;
+use App\Exception\BillingValidationException;
+use App\Form\RegisterType;
+use App\Form\TransactionForm;
 use App\Security\BillingAuthenticator;
+use App\Security\User;
 use App\Services\BillingCoursesService;
 use App\Services\BillingUserService;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\EmailType;
-use Symfony\Component\Form\Extension\Core\Type\PasswordType;
-use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
-use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Notifier\NotifierInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Security\Http\Authentication\UserAuthenticatorInterface;
-use Symfony\Component\Validator\Constraints\Blank;
-use Symfony\Component\Validator\Constraints\NotBlank;
 
 class UserSecurityController extends AbstractController
 {
+    private BillingUserService $billingUserService;
+
+    private AuthenticationUtils $authenticationUtils;
+
+    private BillingCoursesService $billingCoursesService;
+
+    private UserAuthenticatorInterface $authenticator;
+
+    private BillingAuthenticator $formAuthenticator;
+
+    public function __construct(
+        BillingUserService $billingUserService,
+        AuthenticationUtils $authenticationUtils,
+        BillingCoursesService $billingCoursesService,
+        UserAuthenticatorInterface $authenticator,
+        BillingAuthenticator $formAuthenticator
+    ) {
+        $this->billingCoursesService = $billingCoursesService;
+        $this->billingUserService = $billingUserService;
+        $this->authenticationUtils = $authenticationUtils;
+        $this->authenticator = $authenticator;
+        $this->formAuthenticator = $formAuthenticator;
+    }
+
     /**
      * @Route("/login", name="app_login")
      */
-    public function login(AuthenticationUtils $authenticationUtils): Response
+    public function login(): Response
     {
         if ($this->getUser()) {
             return $this->redirectToRoute('app_course_index');
         }
 
-        $error = $authenticationUtils->getLastAuthenticationError();
-        $lastUsername = $authenticationUtils->getLastUsername();
+        $error = $this->authenticationUtils->getLastAuthenticationError();
+        $lastUsername = $this->authenticationUtils->getLastUsername();
 
         return $this->render('security/login.html.twig', ['last_username' => $lastUsername, 'error' => $error]);
     }
@@ -50,75 +72,43 @@ class UserSecurityController extends AbstractController
      * @IsGranted("ROLE_USER")
      * @Route("/profile", name="app_profile")
      */
-    public function profile(BillingUserService $billingService): Response
+    public function profile(): Response
     {
         $authedUser = $this->getUser();
         $token = $authedUser->getApiToken();
         $refreshToken = $authedUser->getRefreshToken();
-        $user = $billingService->currentUser($token, $refreshToken);
+        $userInfo = $this->billingUserService->currentUser($token, $refreshToken);
         return $this->render('security/profile.html.twig', [
-            'email' => $user->getUserIdentifier(),
-            'roles' => $user->getRoles(),
-            'balance' => $user->getBalance(),
+            'email' => $userInfo['username'],
+            'roles' => $userInfo['roles'],
+            'balance' => $userInfo['balance'],
         ]);
     }
 
     /**
      * @IsGranted("ROLE_USER")
      * @Route("/transactions", name="app_transactions")
-     * @throws \Exception
      */
-    public function transactions(
-        Request               $request,
-        BillingCoursesService $billingCoursesService
-    ): Response
+    public function transactions(Request $request): Response
     {
         $user = $this->getUser();
-        $form = $this->createFormBuilder()
-            ->add(
-                'course_code',
-                null,
-                ['label' => 'Код курса', 'required' => false]
-            )
-            ->add(
-                'skip_expired',
-                CheckboxType::class,
-                ['label' => 'Убрать истёкшие транзакции', 'required' => false]
-            )
-            ->add('type', ChoiceType::class, [
-                'choices' => [
-                    'Платежи' => 'payment',
-                    'Депозиты' => 'deposit'
-                ],
-                'expanded' => 'true',
-                'multiple' => 'true',
-                'data' => ['payment','deposit'],
-                'label' => 'Тип транзакции',
-                'preferred_choices' => ['payment', 'deposit'],
-                'constraints' => [
-                    new NotBlank(['message' => 'Вы должны выбрать хотя бы один тип.'])
-                ]
-            ])
-            ->getForm();
+        $form = $this->createForm(TransactionForm::class);
         $form->handleRequest($request);
+        $params = [
+            'type' => null,
+            'course_code' => null,
+            'skip_expired' => null
+        ];
         if ($form->isSubmitted() && $form->isValid()) {
             $formData = $form->getData();
-            $type = null;
-            if(count($formData['type']) === 1) {
-                $type = in_array('payment', $formData['type'], true) ? 'payment' : 'deposit';
-            }
+            $type = count($formData['type']) === 1 ? array_values($formData['type'])[0] : null;
             $params = [
                 'type' => $type,
                 'course_code' => $formData['course_code'],
                 'skip_expired' => $formData['skip_expired']
             ];
-            $transactions = $billingCoursesService->transactions($user, $params);
-            return $this->render('security/transactions.html.twig', [
-                'transactions' => $transactions,
-                'form' => $form->createView()
-            ]);
         }
-        $transactions = $billingCoursesService->transactions($user);
+        $transactions = $this->billingCoursesService->transactions($user, $params);
         return $this->render('security/transactions.html.twig', [
             'transactions' => $transactions,
             'form' => $form->createView()
@@ -127,51 +117,42 @@ class UserSecurityController extends AbstractController
 
     /**
      * @Route("/register", name="app_register")
-     * @throws \Exception
      */
-    public function register(
-        Request                    $request,
-        UserAuthenticatorInterface $authenticator,
-        BillingAuthenticator       $formAuthenticator,
-        BillingUserService         $billingService
-    ): Response
+    public function register(Request $request): Response
     {
         if ($this->getUser()) {
             return $this->redirectToRoute('app_profile');
         }
-        $form = $this->createFormBuilder()
-            ->add('username', EmailType::class, ['label' => 'E-mail'])
-            ->add('password', RepeatedType::class, [
-                'first_options' => ['label' => 'Пароль'],
-                'second_options' => ['label' => 'Подтверждение пароля'],
-                'type' => PasswordType::class,
-                'invalid_message' => 'Поля паролей должны совпадать.'
-            ])
-            ->getForm();
+        $form = $this->createForm(RegisterType::class);
         $form->handleRequest($request);
+        $error = null;
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $user = $billingService->register(json_encode($form->getData(), JSON_THROW_ON_ERROR));
-                return $authenticator->authenticateUser(
+                $userInfo = $this->billingUserService->register(json_encode($form->getData(), JSON_THROW_ON_ERROR));
+                $user = new User();
+                $user->setEmail($userInfo['username']);
+                $user->setBalance($userInfo['balance']);
+                $user->setRoles($userInfo['roles']);
+                $user->setApiToken($userInfo['token']);
+                $user->setRefreshToken($userInfo['refreshToken']);
+                return $this->authenticator->authenticateUser(
                     $user,
-                    $formAuthenticator,
+                    $this->formAuthenticator,
                     $request
                 );
-            } catch (\Exception $e) {
-                $errors = json_decode($e->getMessage(), true, 512, JSON_THROW_ON_ERROR);
-                foreach ($errors as $key => $error) {
-                    $form->get($key)->addError(new FormError($error));
-                    if ($key === 'password') {
-                        $form->get($key)->get('first')->addError(new FormError($error));
-                    }
+            } catch (BillingValidationException | BillingNotFoundException $e) {
+                if ($e instanceof BillingValidationException) {
+                    $error = implode("\n", $e->getErrors());
                 }
-                return $this->render('security/register.html.twig', [
-                    'form' => $form->createView(),
-                ]);
+
+                if ($e instanceof BillingNotFoundException) {
+                    $error = $e->getMessage();
+                }
             }
         }
         return $this->render('security/register.html.twig', [
             'form' => $form->createView(),
+            'error' => $error
         ]);
     }
 }

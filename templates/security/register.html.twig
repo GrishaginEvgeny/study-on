@@ -5,6 +5,9 @@
 {% block body %}
     <div class="row text-center mx-auto">
         <div class="col-md-8 mx-auto" style="width: 400px; margin-top:15%">
+            {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
             <div class="mt-5">
                 {{ form_errors(form) }}
                 <h1 class="h3 mb-3 font-weight-normal text-center">Регистрация</h1>

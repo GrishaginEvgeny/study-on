@@ -29,7 +29,10 @@ class CourseType extends AbstractType
                     new Length([
                         'max' => 255,
                         'maxMessage' => 'Поле "Cимвольный код" не должно быть длинной более {{ limit }} символов.']),
-                    new Regex(['pattern' => '/^[A-Za-z0-9]+$/', 'message' => 'В поле "Cимвольный код" могут содержаться только цифры и латиница.'])
+                    new Regex([
+                        'pattern' => '/^[A-Za-z0-9]+$/',
+                        'message' => 'В поле "Cимвольный код" могут содержаться только цифры и латиница.'
+                    ])
                 ],
             ])
             ->add('name', TextType::class, [

@@ -14,11 +14,11 @@ use App\Tests\Mocks\BillingCourseServiceMock;
 use App\Tests\Mocks\BillingUserServiceMock;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+
 use function DeepCopy\deep_copy;
 
 class CoursesTest extends AbstractTest
 {
-
     protected function getFixtures(): array
     {
         return [AppFixtures::class];
@@ -104,7 +104,7 @@ class CoursesTest extends AbstractTest
                 'course[name]' => 'test',
                 'course[description]' => 'test',
                 'course[cost]' => 0,
-                'course[type]' => 1
+                'course[type]' => Course::FREE_TYPE
             ]
         );
         $client->submit($form);
@@ -138,13 +138,15 @@ class CoursesTest extends AbstractTest
                 'course[name]' => 'test',
                 'course[description]' => 'test',
                 'course[cost]' => 0,
-                'course[type]' => 1
+                'course[type]' => Course::FREE_TYPE
             ]
         );
         $client->submit($form);
         $this->assertSelectorExists('.invalid-feedback.d-block');
-        $this->assertSelectorTextContains('.invalid-feedback.d-block',
-            'Поле "Cимвольный код" не должно быть пустым.');
+        $this->assertSelectorTextContains(
+            '.invalid-feedback.d-block',
+            'Поле "Cимвольный код" не должно быть пустым.'
+        );
     }
 
     public function testAddCourseWithWrongCharacterCode()
@@ -164,13 +166,15 @@ class CoursesTest extends AbstractTest
                 'course[name]' => 'test',
                 'course[description]' => 'test',
                 'course[cost]' => 0,
-                'course[type]' => 1
+                'course[type]' => Course::FREE_TYPE
             ]
         );
         $client->submit($form);
         $this->assertSelectorExists('.invalid-feedback.d-block');
-        $this->assertSelectorTextContains('.invalid-feedback.d-block',
-            'В поле "Cимвольный код" могут содержаться только цифры и латиница.');
+        $this->assertSelectorTextContains(
+            '.invalid-feedback.d-block',
+            'В поле "Cимвольный код" могут содержаться только цифры и латиница.'
+        );
     }
 
     public function testAddCourseWithEmptyName()
@@ -190,13 +194,15 @@ class CoursesTest extends AbstractTest
                 'course[name]' => '',
                 'course[description]' => 'test',
                 'course[cost]' => 0,
-                'course[type]' => 1
+                'course[type]' => Course::FREE_TYPE
             ]
         );
         $client->submit($form);
         $this->assertSelectorExists('.invalid-feedback.d-block');
-        $this->assertSelectorTextContains('.invalid-feedback.d-block',
-            'Поле "Название" не должно быть пустым.');
+        $this->assertSelectorTextContains(
+            '.invalid-feedback.d-block',
+            'Поле "Название" не должно быть пустым.'
+        );
     }
 
     public function testAddCourseWithNotUniqueCharacterCode()
@@ -219,13 +225,15 @@ class CoursesTest extends AbstractTest
                 'course[name]' => 'test',
                 'course[description]' => 'test',
                 'course[cost]' => 0,
-                'course[type]' => 1
+                'course[type]' => Course::FREE_TYPE
             ]
         );
         $client->submit($form);
         $this->assertSelectorExists('.invalid-feedback.d-block');
-        $this->assertSelectorTextContains('.invalid-feedback.d-block',
-            'Курс с таким символьным кодом уже существует.');
+        $this->assertSelectorTextContains(
+            '.invalid-feedback.d-block',
+            'Курс с таким символьным кодом уже существует.'
+        );
     }
 
     public function testAddCourseWithCharacterCodeLengthGreaterThanConstraint()
@@ -245,13 +253,15 @@ class CoursesTest extends AbstractTest
                 'course[name]' => 'test',
                 'course[description]' => 'test',
                 'course[cost]' => 0,
-                'course[type]' => 1
+                'course[type]' => Course::FREE_TYPE
             ]
         );
         $client->submit($form);
         $this->assertSelectorExists('.invalid-feedback.d-block');
-        $this->assertSelectorTextContains('.invalid-feedback.d-block',
-            'Поле "Cимвольный код" не должно быть длинной более 255 символов.');
+        $this->assertSelectorTextContains(
+            '.invalid-feedback.d-block',
+            'Поле "Cимвольный код" не должно быть длинной более 255 символов.'
+        );
     }
 
     public function testAddCourseWithNameLengthGreaterThanConstraint()
@@ -271,13 +281,15 @@ class CoursesTest extends AbstractTest
                 'course[name]' => str_repeat("a", 256),
                 'course[description]' => 'test',
                 'course[cost]' => 0,
-                'course[type]' => 1
+                'course[type]' => Course::FREE_TYPE
             ]
         );
         $client->submit($form);
         $this->assertSelectorExists('.invalid-feedback.d-block');
-        $this->assertSelectorTextContains('.invalid-feedback.d-block',
-            'Поле "Название" не должно быть длинной более 255 символов.');
+        $this->assertSelectorTextContains(
+            '.invalid-feedback.d-block',
+            'Поле "Название" не должно быть длинной более 255 символов.'
+        );
     }
 
     public function testAddCourseWithDescriptionLengthGreaterThanConstraint()
@@ -297,13 +309,15 @@ class CoursesTest extends AbstractTest
                 'course[name]' => 'test',
                 'course[description]' => str_repeat("a", 1001),
                 'course[cost]' => 0,
-                'course[type]' => 1
+                'course[type]' => Course::FREE_TYPE
             ]
         );
         $client->submit($form);
         $this->assertSelectorExists('.invalid-feedback.d-block');
-        $this->assertSelectorTextContains('.invalid-feedback.d-block',
-            'Поле "Описание" не должно быть длинной более 1000 символов.');
+        $this->assertSelectorTextContains(
+            '.invalid-feedback.d-block',
+            'Поле "Описание" не должно быть длинной более 1000 символов.'
+        );
     }
 
     public function testEditCourse()
@@ -327,7 +341,7 @@ class CoursesTest extends AbstractTest
                 'course[name]' => 'testName',
                 'course[description]' => 'test',
                 'course[cost]' => 0,
-                'course[type]' => 1
+                'course[type]' => Course::FREE_TYPE
             ]
         );
         $client->submit($form);
@@ -355,11 +369,12 @@ class CoursesTest extends AbstractTest
         $this->assertCount($countAfter, $crawler->filter('.course-card'));
     }
 
-    public function testTransactionSuccessfully(){
+    public function testTransactionSuccessfully()
+    {
         //без фильтров
         $client = $this->billingClient();
         $this->adminLogin($client);
-        $crawler = $client->followRedirect();
+        $crawler = $client->request('GET', '/courses');
         $linkProfile = $crawler->filter('.person-link')->link();
         $crawler = $client->click($linkProfile);
         $this->assertResponseOk();
@@ -389,7 +404,7 @@ class CoursesTest extends AbstractTest
                 4 => ''
             ]
         ];
-        foreach ($allTransactions as $key => $transaction){
+        foreach ($allTransactions as $key => $transaction) {
             $selector = ".trans-row-{$key}";
             $row = $crawler->filter($selector);
             $row->each(function (Crawler $node, $i) use ($transaction) {
@@ -405,7 +420,7 @@ class CoursesTest extends AbstractTest
         $this->assertResponseOk();
         $depositTransaction = $allTransactions;
         unset($depositTransaction[1], $depositTransaction[2]);
-        foreach ($depositTransaction as $key => $transaction){
+        foreach ($depositTransaction as $key => $transaction) {
             $selector = ".trans-row-{$key}";
             $row = $crawler->filter($selector);
             $row->each(function (Crawler $node, $i) use ($transaction) {
@@ -421,7 +436,7 @@ class CoursesTest extends AbstractTest
         $this->assertResponseOk();
         $paymentTransaction = $allTransactions;
         unset($paymentTransaction[0]);
-        foreach ($paymentTransaction as $key => $transaction){
+        foreach ($paymentTransaction as $key => $transaction) {
             $selector = ".trans-row-{$key}";
             $row = $crawler->filter($selector);
             $row->each(function (Crawler $node, $i) use ($transaction) {
@@ -437,7 +452,7 @@ class CoursesTest extends AbstractTest
         $this->assertResponseOk();
         $codeTransaction = $allTransactions;
         unset($codeTransaction[0], $codeTransaction[1]);
-        foreach ($codeTransaction as $key => $transaction){
+        foreach ($codeTransaction as $key => $transaction) {
             $selector = ".trans-row-{$key}";
             $row = $crawler->filter($selector);
             $row->each(function (Crawler $node, $i) use ($transaction) {
@@ -453,7 +468,7 @@ class CoursesTest extends AbstractTest
         $this->assertResponseOk();
         $flagTransaction = $allTransactions;
         unset($flagTransaction[1]);
-        foreach ($flagTransaction as $key => $transaction){
+        foreach ($flagTransaction as $key => $transaction) {
             $selector = ".trans-row-{$key}";
             $row = $crawler->filter($selector);
             $row->each(function (Crawler $node, $i) use ($transaction) {
@@ -462,10 +477,11 @@ class CoursesTest extends AbstractTest
         }
     }
 
-    public function testTransactionUnsuccessfully() {
+    public function testTransactionUnsuccessfully()
+    {
         $client = $this->billingClient();
         $this->adminLogin($client);
-        $crawler = $client->followRedirect();
+        $crawler = $client->request('GET', '/courses');
         $linkProfile = $crawler->filter('.person-link')->link();
         $crawler = $client->click($linkProfile);
         $this->assertResponseOk();
@@ -474,39 +490,45 @@ class CoursesTest extends AbstractTest
         $this->assertResponseOk();
         $form = $crawler->selectButton('Применить')->form();
         $formValues = $form->getPhpValues();
-        $formValues['form']['type'] = [];
-        $crawler = $client->request($form->getMethod(), $form->getUri(), $formValues);
+        $formValues['transaction_form']['type'] = [];
+        $client->request($form->getMethod(), $form->getUri(), $formValues);
         $this->assertSelectorExists('.invalid-feedback.d-block');
-        $this->assertSelectorTextContains('.invalid-feedback.d-block',
-            'Вы должны выбрать хотя бы один тип.');
+        $this->assertSelectorTextContains(
+            '.invalid-feedback.d-block',
+            'Вы должны выбрать хотя бы один тип.'
+        );
     }
 
-    public function testBuyCourse(){
+    public function testBuyCourse()
+    {
         $client = $this->billingClient();
         $this->adminLogin($client);
-        $crawler = $client->followRedirect();
-        $crawler->filter('.link_to_course')->each(function (Crawler $node, $i) use ($client){
-                if($node->previousAll()->last()->text() === "Python-разработчик"
-                    || $node->previousAll()->last()->text() === "Веб-разработчик"){
-                    $link = $node->link();
-                    $crawler = $client->click($link);
-                    $this->assertResponseOk();
-                    $this->assertSelectorExists('#buyModal');
-                    $buyLink = $crawler->filter('.buy-link')->link();
-                    $client->click($buyLink);
-                    $this->assertResponseRedirect();
-                    $crawler = $client->followRedirect();
-                    $this->assertSelectorExists('.notification-message');
-                            $this->assertSelectorTextContains('.notification-message',
-            'Курс успешно оплачен.');
-                } else {
-                    $link = $node->link();
-                    $client->click($link);
-                    $this->assertResponseOk();
-                    $this->assertSelectorNotExists('#buyModal');
-                }
-            });
+        $crawler = $client->request('GET', '/courses');
+        $crawler->filter('.link_to_course')->each(function (Crawler $node, $i) use ($client) {
+            if (
+                $node->previousAll()->last()->text() === "Обучение шахматам"
+                    || $node->previousAll()->last()->text() === "Разработчик десктопных приложений"
+                    || $node->previousAll()->last()->text() === "Python-разработчик"
+            ) {
+                $link = $node->link();
+                $crawler = $client->click($link);
+                $this->assertResponseOk();
+                $this->assertSelectorExists('#buyModal');
+                $buyLink = $crawler->filter('.buy-link')->link();
+                $client->click($buyLink);
+                $this->assertResponseRedirect();
+                $crawler = $client->followRedirect();
+                $this->assertSelectorExists('.notification-message');
+                        $this->assertSelectorTextContains(
+                            '.notification-message',
+                            'Курс успешно оплачен.'
+                        );
+            } else {
+                $link = $node->link();
+                $crawler = $client->click($link);
+                $this->assertResponseOk();
+                $this->assertSelectorNotExists('#buyModal');
+            }
+        });
     }
-
-
 }

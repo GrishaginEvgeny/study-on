@@ -19,23 +19,37 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  */
 class LessonController extends AbstractController
 {
+    private LessonRepository $lessonRepository;
+
+    private CourseRepository $courseRepository;
+
+    private BillingCoursesService $billingCoursesService;
+
+    private const ACCESS_DENIED_TEXT = 'У вас доступа к этому курсу.';
+
+    public function __construct(
+        LessonRepository $lessonRepository,
+        CourseRepository $courseRepository,
+        BillingCoursesService $billingCoursesService
+    ) {
+        $this->billingCoursesService = $billingCoursesService;
+        $this->courseRepository = $courseRepository;
+        $this->lessonRepository = $lessonRepository;
+    }
+
     /**
      * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/new", name="app_lesson_new", methods={"GET", "POST"})
      */
-    public function new(
-        Request          $request,
-        LessonRepository $lessonRepository,
-        CourseRepository $courseRepository
-    ): Response
+    public function new(Request $request): Response
     {
         $lesson = new Lesson();
         $courseId = $request->query->get("id", null);
-        $lesson->setCourse($courseRepository->find($courseId));
+        $lesson->setCourse($this->courseRepository->find($courseId));
         $form = $this->createForm(LessonType::class, $lesson);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-            $lessonRepository->add($lesson, true);
+            $this->lessonRepository->add($lesson, true);
 
             return $this->redirectToRoute(
                 'app_course_show',
@@ -55,14 +69,16 @@ class LessonController extends AbstractController
      * @IsGranted("ROLE_USER")
      * @Route("/{id}", name="app_lesson_show", methods={"GET"})
      */
-    public function show(Lesson $lesson, BillingCoursesService $billingCoursesService): Response
+    public function show(Lesson $lesson): Response
     {
-        $transactionsOnLessonCourse = $billingCoursesService->transactions($this->getUser(),
+        $transactionsOnLessonCourse = $this->billingCoursesService->transactions(
+            $this->getUser(),
             ['course_code' => $lesson->getCourse()->getCharacterCode(),
-                'skip_expired' => true]);
-        $course = $billingCoursesService->course($lesson->getCourse()->getCharacterCode());
+            'skip_expired' => true]
+        );
+        $course = $this->billingCoursesService->course($lesson->getCourse()->getCharacterCode());
         if (count($transactionsOnLessonCourse) === 0 && $course["type"] !== "free") {
-            throw new AccessDeniedException('У вас доступа к этому курсу.');
+            throw new AccessDeniedException(self::ACCESS_DENIED_TEXT);
         }
         return $this->render('lesson/show.html.twig', [
             'lesson' => $lesson,
@@ -73,17 +89,13 @@ class LessonController extends AbstractController
      * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/{id}/edit", name="app_lesson_edit", methods={"GET", "POST"})
      */
-    public function edit(
-        Request          $request,
-        Lesson           $lesson,
-        LessonRepository $lessonRepository
-    ): Response
+    public function edit(Request $request, Lesson $lesson): Response
     {
         $form = $this->createForm(LessonType::class, $lesson);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $lessonRepository->add($lesson, true);
+            $this->lessonRepository->add($lesson, true);
 
             return $this->redirectToRoute(
                 'app_course_show',
@@ -102,11 +114,7 @@ class LessonController extends AbstractController
      * @IsGranted("ROLE_SUPER_ADMIN")
      * @Route("/{id}", name="app_lesson_delete", methods={"POST"})
      */
-    public function delete(
-        Request          $request,
-        Lesson           $lesson,
-        LessonRepository $lessonRepository
-    ): Response
+    public function delete(Request $request, Lesson $lesson): Response
     {
         if (
             $this->isCsrfTokenValid(
@@ -114,7 +122,7 @@ class LessonController extends AbstractController
                 $request->request->get('_token')
             )
         ) {
-            $lessonRepository->remove($lesson, true);
+            $this->lessonRepository->remove($lesson, true);
         }
 
         return $this->redirectToRoute(

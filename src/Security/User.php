@@ -132,7 +132,7 @@ class User implements UserInterface
 
     public function getJWTPayload(): ?array
     {
-        if (!$this->apiToken) {
+        if (is_null($this->apiToken)) {
             return null;
         }
         $tokenParts = explode(".", $this->apiToken);
