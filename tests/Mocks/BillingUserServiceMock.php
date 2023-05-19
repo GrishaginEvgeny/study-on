@@ -5,12 +5,18 @@ namespace App\Tests\Mocks;
 use App\Exception\BillingValidationException;
 use App\Security\User;
 use App\Services\BillingUserService;
-use App\Services\BillingUserWrongCredentialsException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class BillingUserServiceMock extends BillingUserService
 {
+    private TranslatorInterface $translator;
+
+    public function __construct(TranslatorInterface $translator)
+    {
+        $this->translator = $translator;
+    }
+
     /**
      * @throws \App\Services\BillingUserWrongCredentialsException
      * @throws \JsonException
@@ -27,18 +33,22 @@ class BillingUserServiceMock extends BillingUserService
                 'password' => $arrayedCredentials['password'],
                 'roles' => $arrayedCredentials['username'] === 'admin@study.com' ? ['ROLE_SUPER_ADMIN'] : ['ROLE_USER'],
                 'balance' => $arrayedCredentials['username'] === 'admin@study.com' ? 111111111111 : 1000
-            ]));
+            ], JSON_THROW_ON_ERROR));
             $token = base64_encode(json_encode([
                 'username' => $arrayedCredentials['username'],
                 'iat' => (new \DateTime('now'))->getTimestamp(),
                 'exp' => (new \DateTime('+ 1 hour'))->getTimestamp(),
                 'roles' => $arrayedCredentials['username'] === 'admin@study.com' ? ['ROLE_SUPER_ADMIN'] : ['ROLE_USER'],
-            ]));
+            ], JSON_THROW_ON_ERROR));
             $token = "filler.{$token}";
             return $this->currentUser($token, $refreshToken);
         }
 
-        throw new BadRequestHttpException('Invalid credentials.');
+        throw new BadRequestHttpException($this->translator->trans(
+            'errors.user.invalid_credentials',
+            [],
+            'validators'
+        ));
     }
 
     /**
@@ -57,7 +67,16 @@ class BillingUserServiceMock extends BillingUserService
             $arrayedCredentials['username'] === 'admin@study.com'
             || $arrayedCredentials['username'] === 'usualuser@study.com'
         ) {
-            throw new BillingValidationException(null, 406, null, ["Пользователь с таким E-mail уже зарегистрирован."]);
+            throw new BillingValidationException(
+                null,
+                406,
+                null,
+                [$this->translator->trans(
+                    'errors.register.email.non_unique',
+                    [],
+                    'validators'
+                )]
+            );
         }
         $refreshToken = base64_encode(json_encode([
             'username' => $arrayedCredentials['username'],

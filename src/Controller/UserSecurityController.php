@@ -140,14 +140,10 @@ class UserSecurityController extends AbstractController
                     $this->formAuthenticator,
                     $request
                 );
-            } catch (BillingValidationException | BillingNotFoundException $e) {
-                if ($e instanceof BillingValidationException) {
-                    $error = implode("\n", $e->getErrors());
-                }
-
-                if ($e instanceof BillingNotFoundException) {
-                    $error = $e->getMessage();
-                }
+            } catch (BillingValidationException $e) {
+                $error = implode("\n", $e->getErrors());
+            } catch (BillingNotFoundException $e) {
+                $error = $e->getMessage();
             }
         }
         return $this->render('security/register.html.twig', [

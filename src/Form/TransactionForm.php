@@ -8,9 +8,17 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class TransactionForm extends AbstractType
 {
+    private TranslatorInterface $translator;
+
+    public function __construct(TranslatorInterface $translator)
+    {
+        $this->translator = $translator;
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -35,7 +43,11 @@ class TransactionForm extends AbstractType
                 'label' => 'Тип транзакции',
                 'preferred_choices' => ['payment', 'deposit'],
                 'constraints' => [
-                    new NotBlank(['message' => 'Вы должны выбрать хотя бы один тип.'])
+                    new NotBlank(['message' => $this->translator->trans(
+                        'errors.transaction.non_empty',
+                        [],
+                        'validators'
+                    )])
                 ]
             ]);
     }

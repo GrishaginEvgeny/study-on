@@ -2,25 +2,32 @@
 
 namespace App\Tests\Mocks;
 
-use App\Entity\Course;
 use App\Security\User;
 use App\Services\BillingCoursesService;
-use PHPUnit\Util\Exception;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class BillingCourseServiceMock extends BillingCoursesService
 {
+    private TranslatorInterface $translator;
+
+    public function __construct(TranslatorInterface $translator)
+    {
+        $this->translator = $translator;
+    }
+
     public function buy(string $code, User $user)
     {
         if (
             $code !== 'webdev' && $code !== 'pydev' && $code !== 'layoutdesigner'
             && $code !== 'chessPlayer' && $code !== 'desktopDeveloper'
         ) {
-            throw new NotFoundHttpException('Курс с таким символьным кодом не найден.');
+            throw new NotFoundHttpException($this->translator->trans(
+                'errors.course.doesnt_exist',
+                [],
+                'validators'
+            ));
         }
     }
 
@@ -74,7 +81,11 @@ class BillingCourseServiceMock extends BillingCoursesService
     public function course(string $code): array
     {
         if (!in_array($code, ['pydev', 'webdev', 'layoutdesigner', 'chessPlayer','desktopDeveloper'])) {
-            throw new NotFoundHttpException('Курс с таким символьным кодом не найден.');
+            throw new NotFoundHttpException($this->translator->trans(
+                'errors.course.doesnt_exist',
+                [],
+                'validators'
+            ));
         }
         $result = null;
         switch (true) {
@@ -151,18 +162,30 @@ class BillingCourseServiceMock extends BillingCoursesService
     public function addCourse(User $user, array $params = [])
     {
         if (in_array($params['code'], ['pydev', 'webdev', 'layoutdesigner', 'chessPlayer','desktopDeveloper'])) {
-            throw new NotFoundHttpException('Курс с таким символьным кодом не найден.');
+            throw new NotFoundHttpException($this->translator->trans(
+                'errors.course.doesnt_exist',
+                [],
+                'validators'
+            ));
         }
     }
 
     public function editCourse(User $user, string $code, array $params = [])
     {
         if (in_array($params['code'], ['pydev', 'webdev', 'layoutdesigner', 'chessPlayer','desktopDeveloper'])) {
-            throw new NotAcceptableHttpException('Курс с таким символьным кодом уже существует.');
+            throw new NotAcceptableHttpException($this->translator->trans(
+                'errors.course.slug.non_unique',
+                [],
+                'validators'
+            ));
         }
 
         if (!in_array($code, ['pydev', 'webdev', 'layoutdesigner', 'chessPlayer','desktopDeveloper'])) {
-            throw new NotFoundHttpException('Курс с таким символьным кодом не найден.');
+            throw new NotFoundHttpException($this->translator->trans(
+                'errors.course.doesnt_exist',
+                [],
+                'validators'
+            ));
         }
     }
 }

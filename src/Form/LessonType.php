@@ -16,14 +16,18 @@ use Symfony\Component\Validator\Constraints\GreaterThanOrEqual;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\LessThanOrEqual;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class LessonType extends AbstractType
 {
     private CourseToIdTransformer $courseTransformer;
 
-    public function __construct(CourseToIdTransformer $courseTransformer)
+    private TranslatorInterface $translator;
+
+    public function __construct(CourseToIdTransformer $courseTransformer, TranslatorInterface $translator)
     {
         $this->courseTransformer = $courseTransformer;
+        $this->translator = $translator;
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -32,22 +36,46 @@ class LessonType extends AbstractType
             ->add('Name', TextType::class, [
                 'label' => 'Название',
                 'constraints' => [
-                    new NotBlank(['message' => 'Поле "Название" не должно быть пустым.']),
+                    new NotBlank(['message' => $this->translator->trans(
+                        'errors.lessons.name.non_empty',
+                        [],
+                        'validators'
+                    )]),
                     new Length([
                         'max' => 255,
-                        'maxMessage' => 'Поле "Название" не должно быть длинной более {{ limit }} символов.']),
+                        'maxMessage' => $this->translator->trans(
+                            'errors.lessons.name.too_big',
+                            [],
+                            'validators'
+                        )]),
                 ],
             ])
             ->add('SequenceNumber', NumberType::class, [
                 'label' => 'Порядковый номер',
                 'constraints' => [
                     new GreaterThanOrEqual(['value' => 1,
-                        'message' => 'Порядковый номер должен быть больше или равен {{ compared_value }}.']),
+                        'message' => $this->translator->trans(
+                            'errors.lessons.sequence_number.too_tiny',
+                            [],
+                            'validators'
+                        )]),
                     new LessThanOrEqual(['value' => 10000,
-                        'message' => 'Порядковый номер должен быть меньше или равен {{ compared_value }}.']),
-                    new NotBlank(['message' => 'Порядковый номер" не должно быть пустым.']),
+                        'message' => $this->translator->trans(
+                            'errors.lessons.sequence_number.too_big',
+                            [],
+                            'validators'
+                        )]),
+                    new NotBlank(['message' => $this->translator->trans(
+                        'errors.lessons.sequence_number.non_empty',
+                        [],
+                        'validators'
+                    )]),
                 ],
-                'invalid_message' => 'В поле "Порядковый номер" могут быть введены только целые числа.'
+                'invalid_message' => $this->translator->trans(
+                    'errors.lessons.sequence_number.non_integer',
+                    [],
+                    'validators'
+                )
             ])
             ->add(
                 'Content',
@@ -55,7 +83,11 @@ class LessonType extends AbstractType
                 [
                     'label' => 'Содержимое урока',
                     'constraints' => [
-                        new NotBlank(['message' => 'Поле "Содержимое урока" не должно быть пустым.']),
+                        new NotBlank(['message' => $this->translator->trans(
+                            'errors.lessons.content.non_empty',
+                            [],
+                            'validators'
+                        )]),
                     ],
                 ]
             )

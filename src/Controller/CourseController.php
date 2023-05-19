@@ -17,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Notifier\Notification\Notification;
 use Symfony\Component\Notifier\NotifierInterface;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @Route("/courses")
@@ -31,18 +32,21 @@ class CourseController extends AbstractController
 
     private BillingUserService $billingUserService;
 
-    private const SUCCESSFULLY_PAID_TEXT = 'Курс успешно оплачен.';
+    private TranslatorInterface $translator;
+
 
     public function __construct(
         CourseRepository $courseRepository,
         BillingCoursesService $billingCoursesService,
         NotifierInterface $notifier,
-        BillingUserService $billingUserService
+        BillingUserService $billingUserService,
+        TranslatorInterface $translator
     ) {
         $this->courseRepository = $courseRepository;
         $this->billingCoursesService = $billingCoursesService;
         $this->notifier = $notifier;
         $this->billingUserService = $billingUserService;
+        $this->translator = $translator;
     }
 
     /**
@@ -66,9 +70,10 @@ class CourseController extends AbstractController
             );
             $purchasedCourses = array_column($leftJoinOnTransactionAndCourses, 'course_code');
         }
+        $test = $this->translator->trans('errors.course.cost.buyable_without_cost', [], 'validators');
         return $this->render('course/index.html.twig', [
             'courses' => $this->courseRepository->findAll(),
-            'purchasedCourses' => $purchasedCourses
+            'purchasedCourses' => $purchasedCourses,
         ]);
     }
 
@@ -92,16 +97,13 @@ class CourseController extends AbstractController
                 ]);
                 $this->courseRepository->add($course, true);
                 return $this->redirectToRoute('app_course_index', [], Response::HTTP_SEE_OTHER);
-            } catch (BillingValidationException | BillingNotFoundException $e) {
-                $notification = null;
-                if ($e instanceof BillingValidationException) {
-                    $notification = (new Notification(implode("\n", $e->getErrors()), ['browser']))->emoji("👎");
-                }
-
-                if ($e instanceof BillingNotFoundException) {
-                    $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
-                }
-
+            } catch (BillingValidationException $e) {
+                $notification = (new Notification(implode("\n", $e->getErrors()), ['browser']))
+                    ->emoji($this->translator->trans('emoji.bad'));
+                $this->notifier->send($notification);
+            } catch (BillingNotFoundException $e) {
+                $notification = (new Notification($e->getMessage(), ['browser']))
+                    ->emoji($this->translator->trans('emoji.bad'));
                 $this->notifier->send($notification);
             }
         }
@@ -166,16 +168,13 @@ class CourseController extends AbstractController
                 ]);
                 $this->courseRepository->add($course, true);
                 return $this->redirectToRoute('app_course_index', [], Response::HTTP_SEE_OTHER);
-            } catch (BillingValidationException | BillingNotFoundException $e) {
-                $notification = null;
-                if ($e instanceof BillingValidationException) {
-                    $notification = (new Notification(implode("\n", $e->getErrors()), ['browser']))->emoji("👎");
-                }
-
-                if ($e instanceof BillingNotFoundException) {
-                    $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
-                }
-
+            } catch (BillingValidationException $e) {
+                $notification = (new Notification(implode("\n", $e->getErrors()), ['browser']))
+                    ->emoji($this->translator->trans('emoji.bad'));
+                $this->notifier->send($notification);
+            } catch (BillingNotFoundException $e) {
+                $notification = (new Notification($e->getMessage(), ['browser']))
+                    ->emoji($this->translator->trans('emoji.bad'));
                 $this->notifier->send($notification);
             }
         }
@@ -208,18 +207,18 @@ class CourseController extends AbstractController
         $user = $this->getUser();
         try {
             $this->billingCoursesService->buy($course->getCharacterCode(), $user);
-            $notification = (new Notification(self::SUCCESSFULLY_PAID_TEXT, ['browser']))->emoji("👍");
+            $notification = (new Notification(
+                $this->translator->trans('success.pay'),
+                ['browser']
+            ))->emoji($this->translator->trans('emoji.good'));
             $this->notifier->send($notification);
-        } catch (BillingValidationException | BillingNotFoundException $e) {
-            $notification = null;
-            if ($e instanceof BillingValidationException) {
-                $notification = (new Notification(implode("\n", $e->getErrors()), ['browser']))->emoji("👎");
-            }
-
-            if ($e instanceof BillingNotFoundException) {
-                $notification = (new Notification($e->getMessage(), ['browser']))->emoji("👎");
-            }
-
+        } catch (BillingValidationException $e) {
+            $notification = (new Notification(implode("\n", $e->getErrors()), ['browser']))
+                ->emoji($this->translator->trans('emoji.bad'));
+            $this->notifier->send($notification);
+        } catch (BillingNotFoundException $e) {
+            $notification = (new Notification($e->getMessage(), ['browser']))
+                ->emoji($this->translator->trans('emoji.bad'));
             $this->notifier->send($notification);
         }
         return $this->redirectToRoute('app_course_show', ['id' => $course->getId()], 301);

@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * @ORM\Entity(repositoryClass=CourseRepository::class)
  * @ORM\Table(name="Course")
- * @UniqueEntity(fields={"characterCode"}, message="Курс с таким символьным кодом уже существует.")
+ * @UniqueEntity(fields={"characterCode"}, message="errors.course.slug.non_unique")
  */
 class Course
 {

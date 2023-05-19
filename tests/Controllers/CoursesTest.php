@@ -14,6 +14,8 @@ use App\Tests\Mocks\BillingCourseServiceMock;
 use App\Tests\Mocks\BillingUserServiceMock;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorTrait;
 
 use function DeepCopy\deep_copy;
 
@@ -22,6 +24,13 @@ class CoursesTest extends AbstractTest
     protected function getFixtures(): array
     {
         return [AppFixtures::class];
+    }
+
+    public function getTranslator(): TranslatorInterface
+    {
+        return new class () implements TranslatorInterface {
+            use TranslatorTrait;
+        };
     }
 
     private function adminLogin(?\Symfony\Component\BrowserKit\AbstractBrowser $client)
@@ -44,14 +53,16 @@ class CoursesTest extends AbstractTest
     {
         $this->getClient()->disableReboot();
 
+        $translator = static::getContainer()->get('translator');
+
         $this->getClient()->getContainer()->set(
             BillingUserService::class,
-            new BillingUserServiceMock()
+            new BillingUserServiceMock($translator)
         );
 
         $this->getClient()->getContainer()->set(
             BillingCoursesService::class,
-            new BillingCourseServiceMock()
+            new BillingCourseServiceMock($translator)
         );
 
         return $this->getClient();
@@ -124,6 +135,7 @@ class CoursesTest extends AbstractTest
     public function testAddCourseWithEmptyCharacterCode()
     {
         $client = $this->billingClient();
+        $translator = static::getContainer()->get('translator');
         $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
@@ -145,7 +157,11 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
         $this->assertSelectorTextContains(
             '.invalid-feedback.d-block',
-            'Поле "Cимвольный код" не должно быть пустым.'
+            $translator->trans(
+                'errors.course.slug.non_empty',
+                [],
+                'validators'
+            )
         );
     }
 
@@ -153,6 +169,7 @@ class CoursesTest extends AbstractTest
     {
         $client = $this->billingClient();
         $this->adminLogin($client);
+        $translator = static::getContainer()->get('translator');
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
@@ -173,7 +190,11 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
         $this->assertSelectorTextContains(
             '.invalid-feedback.d-block',
-            'В поле "Cимвольный код" могут содержаться только цифры и латиница.'
+            $translator->trans(
+                'errors.course.slug.wrong_regex',
+                [],
+                'validators'
+            )
         );
     }
 
@@ -181,6 +202,7 @@ class CoursesTest extends AbstractTest
     {
         $client = $this->billingClient();
         $this->adminLogin($client);
+        $translator = static::getContainer()->get('translator');
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
@@ -201,7 +223,11 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
         $this->assertSelectorTextContains(
             '.invalid-feedback.d-block',
-            'Поле "Название" не должно быть пустым.'
+            $translator->trans(
+                'errors.course.name.non_empty',
+                [],
+                'validators'
+            )
         );
     }
 
@@ -209,6 +235,7 @@ class CoursesTest extends AbstractTest
     {
         $client = $this->billingClient();
         $this->adminLogin($client);
+        $translator = static::getContainer()->get('translator');
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
 
@@ -232,13 +259,18 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
         $this->assertSelectorTextContains(
             '.invalid-feedback.d-block',
-            'Курс с таким символьным кодом уже существует.'
+            $translator->trans(
+                'errors.course.slug.non_unique',
+                [],
+                'validators'
+            )
         );
     }
 
     public function testAddCourseWithCharacterCodeLengthGreaterThanConstraint()
     {
         $client = $this->billingClient();
+        $translator = static::getContainer()->get('translator');
         $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
@@ -260,13 +292,18 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
         $this->assertSelectorTextContains(
             '.invalid-feedback.d-block',
-            'Поле "Cимвольный код" не должно быть длинной более 255 символов.'
+            $translator->trans(
+                'errors.course.slug.too_big',
+                [],
+                'validators'
+            )
         );
     }
 
     public function testAddCourseWithNameLengthGreaterThanConstraint()
     {
         $client = $this->billingClient();
+        $translator = static::getContainer()->get('translator');
         $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
@@ -288,13 +325,18 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
         $this->assertSelectorTextContains(
             '.invalid-feedback.d-block',
-            'Поле "Название" не должно быть длинной более 255 символов.'
+            $translator->trans(
+                'errors.course.name.too_big',
+                [],
+                'validators'
+            )
         );
     }
 
     public function testAddCourseWithDescriptionLengthGreaterThanConstraint()
     {
         $client = $this->billingClient();
+        $translator = static::getContainer()->get('translator');
         $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
         $this->assertResponseOk();
@@ -316,7 +358,11 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
         $this->assertSelectorTextContains(
             '.invalid-feedback.d-block',
-            'Поле "Описание" не должно быть длинной более 1000 символов.'
+            $translator->trans(
+                'errors.course.description.too_big',
+                [],
+                'validators'
+            )
         );
     }
 
@@ -481,6 +527,7 @@ class CoursesTest extends AbstractTest
     {
         $client = $this->billingClient();
         $this->adminLogin($client);
+        $translator = static::getContainer()->get('translator');
         $crawler = $client->request('GET', '/courses');
         $linkProfile = $crawler->filter('.person-link')->link();
         $crawler = $client->click($linkProfile);
@@ -495,16 +542,21 @@ class CoursesTest extends AbstractTest
         $this->assertSelectorExists('.invalid-feedback.d-block');
         $this->assertSelectorTextContains(
             '.invalid-feedback.d-block',
-            'Вы должны выбрать хотя бы один тип.'
+            $translator->trans(
+                'errors.transaction.non_empty',
+                [],
+                'validators'
+            )
         );
     }
 
     public function testBuyCourse()
     {
         $client = $this->billingClient();
+        $translator = static::getContainer()->get('translator');
         $this->adminLogin($client);
         $crawler = $client->request('GET', '/courses');
-        $crawler->filter('.link_to_course')->each(function (Crawler $node, $i) use ($client) {
+        $crawler->filter('.link_to_course')->each(function (Crawler $node, $i) use ($client, $translator) {
             if (
                 $node->previousAll()->last()->text() === "Обучение шахматам"
                     || $node->previousAll()->last()->text() === "Разработчик десктопных приложений"
@@ -521,7 +573,7 @@ class CoursesTest extends AbstractTest
                 $this->assertSelectorExists('.notification-message');
                         $this->assertSelectorTextContains(
                             '.notification-message',
-                            'Курс успешно оплачен.'
+                            $translator->trans('success.pay')
                         );
             } else {
                 $link = $node->link();

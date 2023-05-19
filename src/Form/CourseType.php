@@ -16,32 +16,52 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\Regex;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class CourseType extends AbstractType
 {
+    private TranslatorInterface $translator;
+
+    public function __construct(TranslatorInterface $translator)
+    {
+        $this->translator = $translator;
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
             ->add('characterCode', TextType::class, [
                 'label' => 'Символьный код',
                 'constraints' => [
-                    new NotBlank(['message' => 'Поле "Cимвольный код" не должно быть пустым.']),
+                    new NotBlank(['message' => $this->translator->trans(
+                        'errors.course.slug.non_empty',
+                        [],
+                        'validators'
+                    )]),
                     new Length([
                         'max' => 255,
-                        'maxMessage' => 'Поле "Cимвольный код" не должно быть длинной более {{ limit }} символов.']),
+                        'maxMessage' => $this->translator->trans('errors.course.slug.too_big', [], 'validators')]),
                     new Regex([
                         'pattern' => '/^[A-Za-z0-9]+$/',
-                        'message' => 'В поле "Cимвольный код" могут содержаться только цифры и латиница.'
+                        'message' => $this->translator->trans('errors.course.slug.wrong_regex', [], 'validators')
                     ])
                 ],
             ])
             ->add('name', TextType::class, [
                 'label' => 'Название',
                 'constraints' => [
-                    new NotBlank(['message' => 'Поле "Название" не должно быть пустым.']),
+                    new NotBlank(['message' => $this->translator->trans(
+                        'errors.course.name.non_empty',
+                        [],
+                        'validators'
+                    )]),
                     new Length([
                         'max' => 255,
-                        'maxMessage' => 'Поле "Название" не должно быть длинной более {{ limit }} символов.']),
+                        'maxMessage' => $this->translator->trans(
+                            'errors.course.name.too_big',
+                            [],
+                            'validators'
+                        )]),
                 ],
             ])
             ->add('description', TextareaType::class, [
@@ -49,7 +69,11 @@ class CourseType extends AbstractType
                 'constraints' => [
                     new Length([
                         'max' => 1000,
-                        'maxMessage' => 'Поле "Описание" не должно быть длинной более {{ limit }} символов.']),
+                        'maxMessage' => $this->translator->trans(
+                            'errors.course.description.too_big',
+                            [],
+                            'validators'
+                        )]),
                 ],
             ])
             ->add('type', ChoiceType::class, [
@@ -71,20 +95,31 @@ class CourseType extends AbstractType
                         function ($object, ExecutionContextInterface $context, $payload) {
                             $formData = $context->getRoot()->all();
                             if ($formData["type"]->getData() === Course::FREE_TYPE && $object != 0) {
-                                $context->buildViolation('Курс с типом "Бесплатный" не может иметь стоимость.')
+                                $context->buildViolation($this->translator->trans(
+                                    'errors.course.cost.free_with_cost',
+                                    [],
+                                    'validators'
+                                ))
                                     ->atPath('cost')
                                     ->addViolation();
                             }
                             if ($formData["type"]->getData() !== Course::FREE_TYPE && $object <= 0) {
-                                $context->buildViolation('Курс с типом "Аренда или Покупка" 
-                            не может нулевую или отрицательную стоимость.')
+                                $context->buildViolation($this->translator->trans(
+                                    'errors.course.cost.buyable_without_cost',
+                                    [],
+                                    'validators'
+                                ))
                                     ->atPath('cost')
                                     ->addViolation();
                             }
                         }
                     )
                 ],
-                'invalid_message' => 'В данное поле можно вводить только цифры.'
+                'invalid_message' => $this->translator->trans(
+                    'errors.course.cost.invalid_message',
+                    [],
+                    'validators'
+                )
             ]);
     }
 

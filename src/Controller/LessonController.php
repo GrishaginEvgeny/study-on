@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @Route("/lessons")
@@ -25,16 +26,18 @@ class LessonController extends AbstractController
 
     private BillingCoursesService $billingCoursesService;
 
-    private const ACCESS_DENIED_TEXT = 'У вас доступа к этому курсу.';
+    private TranslatorInterface $translator;
 
     public function __construct(
         LessonRepository $lessonRepository,
         CourseRepository $courseRepository,
-        BillingCoursesService $billingCoursesService
+        BillingCoursesService $billingCoursesService,
+        TranslatorInterface $translator
     ) {
         $this->billingCoursesService = $billingCoursesService;
         $this->courseRepository = $courseRepository;
         $this->lessonRepository = $lessonRepository;
+        $this->translator = $translator;
     }
 
     /**
@@ -78,7 +81,7 @@ class LessonController extends AbstractController
         );
         $course = $this->billingCoursesService->course($lesson->getCourse()->getCharacterCode());
         if (count($transactionsOnLessonCourse) === 0 && $course["type"] !== "free") {
-            throw new AccessDeniedException(self::ACCESS_DENIED_TEXT);
+            throw new AccessDeniedException($this->translator->trans('errors.lessons.access_denied', [], 'validators'));
         }
         return $this->render('lesson/show.html.twig', [
             'lesson' => $lesson,

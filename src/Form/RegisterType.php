@@ -11,18 +11,35 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Regex;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class RegisterType extends AbstractType
 {
+    private TranslatorInterface $translator;
+
+    public function __construct(TranslatorInterface $translator)
+    {
+        $this->translator = $translator;
+    }
+
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
             ->add('username', EmailType::class, [
                 'label' => 'E-mail',
                 'constraints' => [
-                    new NotBlank(["message" => "Поле e-mail не может быт пустым."])
+                    new NotBlank(["message" => $this->translator->trans(
+                        'errors.register.email.non_empty',
+                        [],
+                        'validators'
+                    )])
                 ],
-                "invalid_message" => "Поле E-mail содержит некорректные данные."
+                "invalid_message" => $this->translator->trans(
+                    'errors.register.email.invalid_message',
+                    [],
+                    'validators'
+                )
             ])
             ->add('password', RepeatedType::class, [
                 'first_options' => ['label' => 'Пароль'],
@@ -31,15 +48,26 @@ class RegisterType extends AbstractType
                 'constraints' => [
                     new Regex([
                         "pattern" => "/(?=.*[0-9])(?=.*[.!@#$%^&*])(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z!@#$%^&*.]+$/",
-                        "message" => "Пароль должен содержать как один из спец. символов (.!@#$%^&*), " .
-        "прописную и строчные буквы латинского алфавита и цифру."
+                        "message" => $this->translator->trans(
+                            'errors.register.password.wrong_regex',
+                            [],
+                            'validators'
+                        )
                     ]),
                     new Length([
                         "min" => 6,
-                        "minMessage" => "Пароль должен содержать минимум {{ limit }} символов."
+                        "minMessage" => $this->translator->trans(
+                            'errors.register.password.too_tiny',
+                            [],
+                            'validators'
+                        )
                     ])
                 ],
-                'invalid_message' => 'Поля паролей должны совпадать.'
+                'invalid_message' => $this->translator->trans(
+                    'errors.register.password.wrong_repeat',
+                    [],
+                    'validators'
+                )
             ]);
     }
 

@@ -40,14 +40,16 @@ class LessonsTest extends AbstractTest
     {
         $this->getClient()->disableReboot();
 
+        $translator = static::getContainer()->get('translator');
+
         $this->getClient()->getContainer()->set(
             BillingUserService::class,
-            new BillingUserServiceMock()
+            new BillingUserServiceMock($translator)
         );
 
         $this->getClient()->getContainer()->set(
             BillingCoursesService::class,
-            new BillingCourseServiceMock()
+            new BillingCourseServiceMock($translator)
         );
 
         return $this->getClient();

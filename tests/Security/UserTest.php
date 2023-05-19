@@ -17,14 +17,16 @@ class UserTest extends AbstractTest
     {
         $this->getClient()->disableReboot();
 
+        $translator = static::getContainer()->get('translator');
+
         $this->getClient()->getContainer()->set(
             BillingUserService::class,
-            new BillingUserServiceMock()
+            new BillingUserServiceMock($translator)
         );
 
         $this->getClient()->getContainer()->set(
             BillingCoursesService::class,
-            new BillingCourseServiceMock()
+            new BillingCourseServiceMock($translator)
         );
 
         return $this->getClient();
@@ -284,6 +286,7 @@ class UserTest extends AbstractTest
     public function testRegisterWithShortPassword()
     {
         $client = $this->billingClient();
+        $translator = static::getContainer()->get('translator');
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Зарегистрироваться')->link();
         $crawler = $client->click($link);
@@ -299,7 +302,7 @@ class UserTest extends AbstractTest
         $this->assertResponseOk();
         $this->assertSelectorTextContains(
             '.invalid-feedback',
-            'Пароль должен содержать минимум 6 символов.'
+            $translator->trans('errors.register.password.too_tiny', [], 'validators')
         );
     }
 
@@ -307,6 +310,7 @@ class UserTest extends AbstractTest
     {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
+        $translator = static::getContainer()->get('translator');
         $link = $crawler->selectLink('Зарегистрироваться')->link();
         $crawler = $client->click($link);
         $this->assertResponseOk();
@@ -321,14 +325,14 @@ class UserTest extends AbstractTest
         $this->assertResponseOk();
         $this->assertSelectorTextContains(
             '.invalid-feedback',
-            "Пароль должен содержать как один из спец. символов (.!@#$%^&*), " .
-            "прописную и строчные буквы латинского алфавита и цифру."
+            $translator->trans('errors.register.password.wrong_regex', [], 'validators')
         );
     }
 
     public function testRegisterWrongEmail()
     {
         $client = $this->billingClient();
+        $translator = static::getContainer()->get('translator');
         $crawler = $client->request('GET', '/courses');
         $link = $crawler->selectLink('Зарегистрироваться')->link();
         $crawler = $client->click($link);
@@ -344,7 +348,7 @@ class UserTest extends AbstractTest
         $this->assertResponseOk();
         $this->assertSelectorTextContains(
             '.invalid-feedback',
-            "Поле e-mail не может быт пустым."
+            $translator->trans('errors.register.email.non_empty', [], 'validators')
         );
     }
 
@@ -352,6 +356,7 @@ class UserTest extends AbstractTest
     {
         $client = $this->billingClient();
         $crawler = $client->request('GET', '/courses');
+        $translator = static::getContainer()->get('translator');
         $link = $crawler->selectLink('Зарегистрироваться')->link();
         $crawler = $client->click($link);
         $this->assertResponseOk();
@@ -366,7 +371,7 @@ class UserTest extends AbstractTest
         $this->assertResponseOk();
         $this->assertSelectorTextContains(
             '.alert',
-            'Пользователь с таким E-mail уже зарегистрирован.'
+            $translator->trans('errors.register.email.non_unique', [], 'validators')
         );
     }
 }
